@@ -4,6 +4,8 @@ A terminal-style personal portfolio. The page is a fake shell: visitors type com
 
 The screen is static for now. It shows a welcome line and a `visitor@portfolio:~$` prompt, and it does not read input yet.
 
+Built with AI pair programming (Cursor agents) under Diogo's direction.
+
 ## Prerequisites
 
 Node.js 22 or newer.
@@ -20,7 +22,7 @@ npm run preview  # serve the production build
 
 ## Roadmap
 
-- [ ] Command parser module with unit tests. Split a line into a command name and arguments, and report an empty or unknown command.
+- [x] Command parser module with unit tests. Split a line into a command name and arguments, and report an empty or unknown command.
 - [ ] On-screen input that runs the parser and prints results into a scrollback log.
 - [ ] `help` and `clear`.
 - [ ] `about`, `projects`, and `resume`, backed by local content.
