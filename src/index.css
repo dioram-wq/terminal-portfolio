@@ -74,11 +74,39 @@ body {
   color: #8b978e;
 }
 
+.terminal__log {
+  display: flex;
+  flex-direction: column;
+}
+
 .terminal__prompt {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 18px 0 0;
+}
+
+.terminal__prompt--logged {
+  margin: 0 0 8px;
+}
+
+.terminal__command {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.terminal__input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  caret-color: #7dffb3;
 }
 
 .terminal__user {
@@ -91,23 +119,4 @@ body {
 
 .terminal__sigil {
   color: #d7e0d8;
-}
-
-.terminal__cursor {
-  width: 8px;
-  height: 1.1em;
-  background: #7dffb3;
-  animation: blink 1.1s steps(1) infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .terminal__cursor {
-    animation: none;
-  }
 }
