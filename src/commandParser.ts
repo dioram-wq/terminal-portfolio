@@ -1,10 +1,12 @@
-export const KNOWN_COMMANDS = [
-  'help',
-  'clear',
-  'about',
-  'projects',
-  'resume',
+export const COMMANDS = [
+  { name: 'help', description: 'List available commands' },
+  { name: 'clear', description: 'Clear the scrollback log' },
+  { name: 'about', description: 'Print a short introduction' },
+  { name: 'projects', description: 'List selected projects' },
+  { name: 'resume', description: 'Show experience and background' },
 ] as const
+
+export const KNOWN_COMMANDS = COMMANDS.map((command) => command.name)
 
 export type ParseResult =
   | { kind: 'command'; name: string; args: string[] }

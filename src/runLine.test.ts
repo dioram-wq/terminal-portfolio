@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { KNOWN_COMMANDS } from './commandParser.ts'
 import { runLine } from './runLine.ts'
 
 describe('runLine', () => {
@@ -25,8 +24,8 @@ describe('runLine', () => {
     ])
   })
 
-  it('prints a placeholder for each known command', () => {
-    for (const name of KNOWN_COMMANDS) {
+  it('prints a placeholder for commands that are not implemented yet', () => {
+    for (const name of ['about', 'projects', 'resume']) {
       expect(runLine(`${name} extra`)).toEqual([
         { kind: 'echo', line: `${name} extra` },
         { kind: 'output', line: `${name}: coming soon` },

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react'
-import { runLine, type ScrollbackEntry } from './runLine.ts'
+import { applyLine, type ScrollbackEntry } from './runLine.ts'
 
 export function Terminal() {
   const [log, setLog] = useState<ScrollbackEntry[]>([])
@@ -11,7 +11,7 @@ export function Terminal() {
     }
 
     event.preventDefault()
-    setLog((current) => [...current, ...runLine(draft)])
+    setLog((current) => applyLine(current, draft))
     setDraft('')
   }
 
@@ -36,7 +36,7 @@ export function Terminal() {
                 <span className="terminal__command">{entry.line}</span>
               </Prompt>
             ) : (
-              <p className="terminal__line" key={index}>
+              <p className="terminal__line terminal__line--output" key={index}>
                 {entry.line}
               </p>
             ),

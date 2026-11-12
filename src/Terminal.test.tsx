@@ -30,11 +30,11 @@ describe('Terminal', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })
 
-    fireEvent.change(input, { target: { value: 'help' } })
+    fireEvent.change(input, { target: { value: 'about' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
-    expect(screen.getByText('help')).toBeTruthy()
-    expect(screen.getByText('help: coming soon')).toBeTruthy()
+    expect(screen.getByText('about')).toBeTruthy()
+    expect(screen.getByText('about: coming soon')).toBeTruthy()
     expect(input).toHaveProperty('value', '')
   })
 
