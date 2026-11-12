@@ -2,7 +2,7 @@
 
 A terminal-style personal portfolio. The page is a fake shell: visitors type commands such as `help`, `projects`, `resume`, `about`, and `clear`.
 
-The screen shows a welcome line and a `visitor@portfolio:~$` prompt. The prompt reads input: Enter echoes the line into a scrollback log, runs it through the command parser, and prints the result.
+The screen shows a welcome line and a `visitor@portfolio:~$` prompt. The prompt reads input: Enter echoes the line into a scrollback log, runs it through the command parser, and prints the result. `help` lists every command with a one-line description, and `clear` empties the log.
 
 Built with AI pair programming (Cursor agents) under Diogo's direction.
 
@@ -24,7 +24,7 @@ npm run preview  # serve the production build
 
 - [x] Command parser module with unit tests. Split a line into a command name and arguments, and report an empty or unknown command.
 - [x] On-screen input that runs the parser and prints results into a scrollback log.
-- [ ] `help` and `clear`.
+- [x] `help` and `clear`. `help` lists every command with a one-line description, and `clear` empties the scrollback.
 - [ ] `about`, `projects`, and `resume`, backed by local content.
 - [ ] Command history with the up and down arrow keys.
 - [ ] A layout that stays usable on a narrow screen, then a deploy target.
