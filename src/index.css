@@ -75,6 +75,12 @@ body {
   overflow-wrap: anywhere;
 }
 
+.terminal__link,
+.terminal__link:visited {
+  color: #8ec8ff;
+  text-underline-offset: 2px;
+}
+
 .terminal__line--dim {
   color: #8b978e;
 }

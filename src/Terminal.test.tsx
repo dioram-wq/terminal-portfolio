@@ -31,11 +31,11 @@ describe('Terminal', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })
 
-    fireEvent.change(input, { target: { value: 'about' } })
+    fireEvent.change(input, { target: { value: 'resume' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
-    expect(screen.getByText('about')).toBeTruthy()
-    expect(screen.getByText('about: coming soon')).toBeTruthy()
+    expect(screen.getByText('resume')).toBeTruthy()
+    expect(screen.getByText('resume: coming soon')).toBeTruthy()
     expect(input).toHaveProperty('value', '')
   })
 
@@ -68,9 +68,9 @@ describe('Terminal', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })
 
-    fireEvent.change(input, { target: { value: 'about' } })
+    fireEvent.change(input, { target: { value: 'resume' } })
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(screen.getByText('about: coming soon')).toBeTruthy()
+    expect(screen.getByText('resume: coming soon')).toBeTruthy()
 
     fireEvent.change(input, { target: { value: 'clear' } })
     fireEvent.keyDown(input, { key: 'Enter' })
@@ -78,13 +78,13 @@ describe('Terminal', () => {
     expect(screen.getByRole('log').textContent).toBe('')
     expect(input).toHaveProperty('value', '')
     expect(screen.getByText('visitor@portfolio')).toBeTruthy()
-    expect(screen.queryByText('about: coming soon')).toBeNull()
+    expect(screen.queryByText('resume: coming soon')).toBeNull()
 
-    fireEvent.change(input, { target: { value: 'resume' } })
+    fireEvent.change(input, { target: { value: 'help' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
-    expect(screen.getByText('resume')).toBeTruthy()
-    expect(screen.getByText('resume: coming soon')).toBeTruthy()
-    expect(screen.queryByText('about: coming soon')).toBeNull()
+    expect(screen.getByText('help')).toBeTruthy()
+    expect(screen.getByRole('log').textContent).toContain('List available commands')
+    expect(screen.queryByText('resume: coming soon')).toBeNull()
   })
 })

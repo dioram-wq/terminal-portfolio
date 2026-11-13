@@ -1,6 +1,41 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import { applyLine, type ScrollbackEntry } from './runLine.ts'
 
+const URL_PATTERN = /https?:\/\/[^\s]+/g
+
+function outputLine(line: string): ReactNode {
+  const matches = [...line.matchAll(URL_PATTERN)]
+  if (matches.length === 0) {
+    return line
+  }
+
+  const nodes: ReactNode[] = []
+  let cursor = 0
+  for (const match of matches) {
+    const url = match[0]
+    const index = match.index ?? 0
+    if (index > cursor) {
+      nodes.push(line.slice(cursor, index))
+    }
+    nodes.push(
+      <a
+        key={`${index}:${url}`}
+        className="terminal__link"
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {url}
+      </a>,
+    )
+    cursor = index + url.length
+  }
+  if (cursor < line.length) {
+    nodes.push(line.slice(cursor))
+  }
+  return nodes
+}
+
 export function Terminal() {
   const [log, setLog] = useState<ScrollbackEntry[]>([])
   const [draft, setDraft] = useState('')
@@ -37,7 +72,7 @@ export function Terminal() {
               </Prompt>
             ) : (
               <p className="terminal__line terminal__line--output" key={index}>
-                {entry.line}
+                {outputLine(entry.line)}
               </p>
             ),
           )}

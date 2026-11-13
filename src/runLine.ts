@@ -1,4 +1,5 @@
 import { COMMANDS, parseCommand } from './commandParser.ts'
+import { about, projects } from './content.ts'
 
 export type ScrollbackEntry =
   | { kind: 'echo'; line: string }
@@ -22,6 +23,30 @@ function helpOutput(): ScrollbackEntry[] {
   )
 }
 
+function aboutOutput(): ScrollbackEntry[] {
+  return [about.name, about.introduction, about.focus].map(
+    (line): ScrollbackEntry => ({ kind: 'output', line }),
+  )
+}
+
+function projectsOutput(): ScrollbackEntry[] {
+  const width = projects.reduce(
+    (longest, project) => Math.max(longest, project.name.length),
+    0,
+  )
+
+  return projects.flatMap((project): ScrollbackEntry[] => [
+    {
+      kind: 'output',
+      line: `${project.name.padEnd(width)}  ${project.description}`,
+    },
+    {
+      kind: 'output',
+      line: `${''.padEnd(width)}  ${project.url}`,
+    },
+  ])
+}
+
 function effectFor(line: string): LineEffect {
   const echo: ScrollbackEntry = { kind: 'echo', line }
   const parsed = parseCommand(line)
@@ -43,6 +68,12 @@ function effectFor(line: string): LineEffect {
       }
       if (parsed.name === 'help') {
         return { kind: 'append', entries: [echo, ...helpOutput()] }
+      }
+      if (parsed.name === 'about') {
+        return { kind: 'append', entries: [echo, ...aboutOutput()] }
+      }
+      if (parsed.name === 'projects') {
+        return { kind: 'append', entries: [echo, ...projectsOutput()] }
       }
       return {
         kind: 'append',
