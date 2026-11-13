@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { COMMANDS, KNOWN_COMMANDS } from './commandParser.ts'
+import { about, projects } from './content.ts'
 import { applyLine, runLine } from './runLine.ts'
+
+function outputLines(line: string): string[] {
+  return runLine(line)
+    .filter((entry) => entry.kind === 'output')
+    .map((entry) => entry.line)
+}
 
 describe('runLine', () => {
   it('echoes an empty line and prints no result', () => {
@@ -28,6 +35,43 @@ describe('runLine', () => {
   it('prints a placeholder for commands that are not implemented yet', () => {
     expect(runLine('resume extra')).toEqual([
       { kind: 'echo', line: 'resume extra' },
+      { kind: 'output', line: 'resume: coming soon' },
+    ])
+  })
+
+  it('prints the about introduction from local content', () => {
+    expect(runLine('about extra')[0]).toEqual({
+      kind: 'echo',
+      line: 'about extra',
+    })
+    expect(outputLines('about extra')).toEqual([
+      about.name,
+      about.introduction,
+      about.focus,
+    ])
+    expect(outputLines('about extra').join('\n')).not.toContain('coming soon')
+  })
+
+  it('lists every project with its description and GitHub link', () => {
+    const entries = runLine('  projects   web  ')
+    const lines = entries
+      .filter((entry) => entry.kind === 'output')
+      .map((entry) => entry.line)
+    const width = Math.max(...projects.map((project) => project.name.length))
+
+    expect(entries[0]).toEqual({ kind: 'echo', line: '  projects   web  ' })
+    expect(lines).toEqual(
+      projects.flatMap((project) => [
+        `${project.name.padEnd(width)}  ${project.description}`,
+        `${''.padEnd(width)}  ${project.url}`,
+      ]),
+    )
+    expect(lines.join('\n')).not.toContain('coming soon')
+  })
+
+  it('still prints a placeholder for resume', () => {
+    expect(runLine('resume')).toEqual([
+      { kind: 'echo', line: 'resume' },
       { kind: 'output', line: 'resume: coming soon' },
     ])
   })

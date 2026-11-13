@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { COMMANDS } from './commandParser.ts'
+import { about, projects } from './content.ts'
 import { Terminal } from './Terminal.tsx'
 
 afterEach(() => {
@@ -62,6 +63,52 @@ describe('Terminal', () => {
       expect(log.textContent).toContain(command.name)
       expect(log.textContent).toContain(command.description)
     }
+  })
+
+  it('prints the about introduction', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'about' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    const log = screen.getByRole('log')
+    expect(screen.getByText('about')).toBeTruthy()
+    expect(log.textContent).toContain(about.name)
+    expect(log.textContent).toContain(about.introduction)
+    expect(log.textContent).toContain(about.focus)
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('lists each project with a clickable GitHub link', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'projects' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    const log = screen.getByRole('log')
+    for (const project of projects) {
+      expect(log.textContent).toContain(project.name)
+      expect(log.textContent).toContain(project.description)
+      const link = screen.getByRole('link', { name: project.url })
+      expect(link.getAttribute('href')).toBe(project.url)
+      expect(link.getAttribute('target')).toBe('_blank')
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer')
+    }
+  })
+
+  it('still shows a placeholder for resume', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'resume' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    const log = screen.getByRole('log')
+    expect(log.textContent).toContain('resume: coming soon')
+    expect(log.textContent).not.toContain(about.name)
+    expect(screen.queryByRole('link')).toBeNull()
   })
 
   it('clears the scrollback and keeps the prompt usable', () => {
