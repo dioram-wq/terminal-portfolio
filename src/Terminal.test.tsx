@@ -134,4 +134,95 @@ describe('Terminal', () => {
     expect(screen.getByRole('log').textContent).toContain('List available commands')
     expect(screen.queryByText('resume: coming soon')).toBeNull()
   })
+
+  it('recalls earlier commands with the up and down arrow keys', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'help' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.change(input, { target: { value: 'about' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.change(input, { target: { value: 'projects' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(fireEvent.keyDown(input, { key: 'ArrowUp' })).toBe(false)
+    expect(input).toHaveProperty('value', 'projects')
+    expect(input).toHaveProperty('selectionStart', 'projects'.length)
+    expect(input).toHaveProperty('selectionEnd', 'projects'.length)
+
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'about')
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'help')
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'help')
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(input).toHaveProperty('value', 'about')
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(input).toHaveProperty('value', 'projects')
+    expect(fireEvent.keyDown(input, { key: 'ArrowDown' })).toBe(false)
+    expect(input).toHaveProperty('value', '')
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(input).toHaveProperty('value', '')
+
+    expect(screen.getAllByText('help')).toHaveLength(1)
+    expect(screen.getAllByText('about')).toHaveLength(1)
+    expect(screen.getAllByText('projects')).toHaveLength(1)
+  })
+
+  it('replaces an unsubmitted draft and returns to an empty line', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'help' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.change(input, { target: { value: 'not submitted' } })
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+
+    expect(input).toHaveProperty('value', 'help')
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(input).toHaveProperty('value', '')
+    expect(screen.getByRole('log').textContent).not.toContain('not submitted')
+  })
+
+  it('runs a recalled command and skips empty or duplicate history entries', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'help' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.change(input, { target: { value: 'help' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'help')
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'help')
+
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(input).toHaveProperty('value', '')
+    expect(screen.getAllByText('help')).toHaveLength(3)
+
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'help')
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'help')
+  })
+
+  it('leaves the draft alone while an IME composition is active', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'help' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.change(input, { target: { value: 'draft' } })
+    fireEvent.keyDown(input, { key: 'ArrowUp', isComposing: true })
+
+    expect(input).toHaveProperty('value', 'draft')
+    expect(screen.getAllByText('help')).toHaveLength(1)
+  })
 })
