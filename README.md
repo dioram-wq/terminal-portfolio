@@ -2,7 +2,7 @@
 
 A terminal-style personal portfolio. The page is a fake shell: visitors type commands such as `help`, `projects`, `resume`, `about`, and `clear`.
 
-The screen shows a welcome line and a `visitor@portfolio:~$` prompt. The prompt reads input: Enter echoes the line into a scrollback log, runs it through the command parser, and prints the result. `help` lists every command with a one-line description, and `clear` empties the log. `about` prints a short introduction, and `projects` lists selected projects with a one-line description and a GitHub link. `resume` still prints a placeholder.
+The screen shows a welcome line and a `visitor@portfolio:~$` prompt. The prompt reads input: Enter echoes the line into a scrollback log, runs it through the command parser, and prints the result. Up and Down recall earlier commands, and Down past the newest entry returns to an empty draft. `help` lists every command with a one-line description, and `clear` empties the log. `about` prints a short introduction, and `projects` lists selected projects with a one-line description and a GitHub link. `resume` still prints a placeholder.
 
 Built with AI pair programming (Cursor agents) under Diogo's direction.
 
@@ -27,5 +27,5 @@ npm run preview  # serve the production build
 - [x] `help` and `clear`. `help` lists every command with a one-line description, and `clear` empties the scrollback.
 - [x] `about` and `projects`, backed by a local content module. `about` prints a short introduction. `projects` lists each project with a one-line description and a GitHub link.
 - [ ] `resume`, still a placeholder.
-- [ ] Command history with the up and down arrow keys.
+- [x] Command history with the up and down arrow keys. Up recalls older commands, and Down past the newest entry returns to an empty draft.
 - [ ] A layout that stays usable on a narrow screen, then a deploy target.
