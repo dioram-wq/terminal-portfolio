@@ -1,4 +1,17 @@
-import { useState, type KeyboardEvent, type ReactNode } from 'react'
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
+import {
+  createHistory,
+  recallNext,
+  recallPrevious,
+  recordCommand,
+  type CommandHistory,
+} from './history.ts'
 import { applyLine, type ScrollbackEntry } from './runLine.ts'
 
 const URL_PATTERN = /https?:\/\/[^\s]+/g
@@ -39,14 +52,51 @@ function outputLine(line: string): ReactNode {
 export function Terminal() {
   const [log, setLog] = useState<ScrollbackEntry[]>([])
   const [draft, setDraft] = useState('')
+  const [history, setHistory] = useState<CommandHistory>(createHistory)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const caretOffset = useRef<number | null>(null)
+
+  useLayoutEffect(() => {
+    const input = inputRef.current
+    const offset = caretOffset.current
+    if (!input || offset === null) {
+      return
+    }
+    caretOffset.current = null
+    input.setSelectionRange(offset, offset)
+  })
+
+  function showRecalled(line: string, nextHistory: CommandHistory) {
+    if (nextHistory === history && line === draft) {
+      return
+    }
+    caretOffset.current = line.length
+    setHistory(nextHistory)
+    setDraft(line)
+  }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+    if (event.nativeEvent.isComposing) {
+      return
+    }
+
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      const recall =
+        event.key === 'ArrowUp'
+          ? recallPrevious(history)
+          : recallNext(history)
+      showRecalled(recall.line, recall.history)
+      return
+    }
+
+    if (event.key !== 'Enter') {
       return
     }
 
     event.preventDefault()
     setLog((current) => applyLine(current, draft))
+    setHistory((current) => recordCommand(current, draft))
     setDraft('')
   }
 
@@ -79,6 +129,7 @@ export function Terminal() {
         </div>
         <Prompt>
           <input
+            ref={inputRef}
             className="terminal__input"
             type="text"
             value={draft}
