@@ -213,6 +213,43 @@ describe('Terminal', () => {
     expect(input).toHaveProperty('value', 'help')
   })
 
+  it('completes a command name when Tab is pressed', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'proj' } })
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false)
+
+    expect(input).toHaveProperty('value', 'projects ')
+    expect(input).toHaveProperty('selectionStart', 'projects '.length)
+    expect(input).toHaveProperty('selectionEnd', 'projects '.length)
+    expect(document.activeElement).toBe(input)
+    expect(screen.getByRole('log').textContent).toBe('')
+
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false)
+    expect(input).toHaveProperty('value', 'projects ')
+    expect(screen.getByRole('log').textContent).toBe('')
+  })
+
+  it('lists command names when Tab cannot extend the input', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false)
+    expect(input).toHaveProperty('value', '')
+    expect(document.activeElement).toBe(input)
+
+    const log = screen.getByRole('log')
+    for (const command of COMMANDS) {
+      expect(log.textContent).toContain(command.name)
+    }
+
+    fireEvent.change(input, { target: { value: 'help extra' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'help extra')
+    expect(log.textContent).not.toContain('help extra')
+  })
+
   it('leaves the draft alone while an IME composition is active', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })
