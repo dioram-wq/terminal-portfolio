@@ -5,6 +5,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react'
+import { completeCommand } from './completion.ts'
 import {
   createHistory,
   recallNext,
@@ -87,6 +88,23 @@ export function Terminal() {
           ? recallPrevious(history)
           : recallNext(history)
       showRecalled(recall.line, recall.history)
+      return
+    }
+
+    if (event.key === 'Tab') {
+      event.preventDefault()
+      const completion = completeCommand(draft)
+      if (completion.line !== draft) {
+        caretOffset.current = completion.line.length
+        setDraft(completion.line)
+        return
+      }
+      if (completion.matches.length > 1) {
+        setLog((current) => [
+          ...current,
+          { kind: 'output', line: completion.matches.join('  ') },
+        ])
+      }
       return
     }
 
