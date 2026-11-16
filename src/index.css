@@ -1,6 +1,7 @@
 :root {
   color-scheme: dark;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 16px;
   background: #070908;
   color: #d7e0d8;
 }
@@ -9,9 +10,14 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: clip;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -19,11 +25,14 @@ body {
 
 .terminal {
   width: min(720px, 100%);
+  max-width: 100%;
   border: 1px solid #1d2620;
   border-radius: 12px;
   background: #0c100e;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
   overflow: hidden;
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
 }
 
 .terminal__chrome {
@@ -66,8 +75,14 @@ body {
   line-height: 1.6;
 }
 
+.terminal__scroll {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .terminal__line {
   margin: 0 0 8px;
+  max-width: 100%;
 }
 
 .terminal__line--output {
@@ -78,6 +93,7 @@ body {
 .terminal__link,
 .terminal__link:visited {
   color: #8ec8ff;
+  overflow-wrap: anywhere;
   text-underline-offset: 2px;
 }
 
@@ -92,8 +108,11 @@ body {
 
 .terminal__prompt {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 4px;
+  max-width: 100%;
   margin: 18px 0 0;
 }
 
@@ -101,23 +120,38 @@ body {
   margin: 0 0 8px;
 }
 
+.terminal__prefix {
+  display: inline-flex;
+  align-items: baseline;
+  column-gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .terminal__command {
+  flex: 1 1 12ch;
+  min-width: 0;
+  max-width: 100%;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .terminal__input {
-  flex: 1;
+  flex: 1 1 12ch;
   min-width: 0;
+  max-width: 100%;
   margin: 0;
   padding: 0;
   border: 0;
+  border-radius: 0;
   outline: none;
   background: transparent;
   color: inherit;
   font: inherit;
+  font-size: 16px;
   line-height: inherit;
   caret-color: #7dffb3;
+  appearance: none;
 }
 
 .terminal__user {
@@ -130,4 +164,90 @@ body {
 
 .terminal__sigil {
   color: #d7e0d8;
+}
+
+@media (max-width: 480px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    height: 100vh;
+    height: 100svh;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+    padding: 8px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-left: max(8px, env(safe-area-inset-left));
+  }
+
+  #root {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .terminal {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+  }
+
+  .terminal__chrome {
+    flex-shrink: 0;
+    padding: 10px 12px;
+  }
+
+  .terminal__screen {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 14px 12px 12px;
+    overflow: hidden;
+  }
+
+  .terminal__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .terminal__prompt:not(.terminal__prompt--logged) {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-top: 0;
+    padding-top: 12px;
+    background: #0c100e;
+  }
+
+  .terminal__input,
+  .terminal__command {
+    flex: 1 1 100%;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .terminal__input {
+    min-height: 44px;
+    padding: 10px 0;
+  }
 }

@@ -55,6 +55,7 @@ export function Terminal() {
   const [draft, setDraft] = useState('')
   const [history, setHistory] = useState<CommandHistory>(createHistory)
   const inputRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const caretOffset = useRef<number | null>(null)
 
   useLayoutEffect(() => {
@@ -66,6 +67,14 @@ export function Terminal() {
     caretOffset.current = null
     input.setSelectionRange(offset, offset)
   })
+
+  useLayoutEffect(() => {
+    const scroller = scrollRef.current
+    if (!scroller) {
+      return
+    }
+    scroller.scrollTop = log.length === 0 ? 0 : scroller.scrollHeight
+  }, [log])
 
   function showRecalled(line: string, nextHistory: CommandHistory) {
     if (nextHistory === history && line === draft) {
@@ -127,40 +136,42 @@ export function Terminal() {
         <span className="terminal__title">portfolio</span>
       </div>
       <div className="terminal__screen">
-        <p className="terminal__line">Welcome to the terminal portfolio.</p>
-        <p className="terminal__line terminal__line--dim">
-          A fake shell for projects, resume, and about. Press Enter to run a
-          line.
-        </p>
-        <div className="terminal__log" role="log">
-          {log.map((entry, index) =>
-            entry.kind === 'echo' ? (
-              <Prompt key={index} logged>
-                <span className="terminal__command">{entry.line}</span>
-              </Prompt>
-            ) : (
-              <p className="terminal__line terminal__line--output" key={index}>
-                {outputLine(entry.line)}
-              </p>
-            ),
-          )}
+        <div className="terminal__scroll" ref={scrollRef}>
+          <p className="terminal__line">Welcome to the terminal portfolio.</p>
+          <p className="terminal__line terminal__line--dim">
+            A fake shell for projects, resume, and about. Press Enter to run a
+            line.
+          </p>
+          <div className="terminal__log" role="log">
+            {log.map((entry, index) =>
+              entry.kind === 'echo' ? (
+                <Prompt key={index} logged>
+                  <span className="terminal__command">{entry.line}</span>
+                </Prompt>
+              ) : (
+                <p className="terminal__line terminal__line--output" key={index}>
+                  {outputLine(entry.line)}
+                </p>
+              ),
+            )}
+          </div>
+          <Prompt>
+            <input
+              ref={inputRef}
+              className="terminal__input"
+              type="text"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={onKeyDown}
+              aria-label="Command"
+              autoFocus
+              autoCapitalize="off"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </Prompt>
         </div>
-        <Prompt>
-          <input
-            ref={inputRef}
-            className="terminal__input"
-            type="text"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={onKeyDown}
-            aria-label="Command"
-            autoFocus
-            autoCapitalize="off"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-        </Prompt>
       </div>
     </main>
   )
@@ -179,9 +190,11 @@ function Prompt({
         logged ? 'terminal__prompt terminal__prompt--logged' : 'terminal__prompt'
       }
     >
-      <span className="terminal__user">visitor@portfolio</span>
-      <span className="terminal__path">:~</span>
-      <span className="terminal__sigil">$</span>
+      <span className="terminal__prefix">
+        <span className="terminal__user">visitor@portfolio</span>
+        <span className="terminal__path">:~</span>
+        <span className="terminal__sigil">$</span>
+      </span>
       {children}
     </div>
   )
