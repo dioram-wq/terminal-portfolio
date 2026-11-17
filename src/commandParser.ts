@@ -3,7 +3,7 @@ export const COMMANDS = [
   { name: 'clear', description: 'Clear the scrollback log' },
   { name: 'about', description: 'Print a short introduction' },
   { name: 'projects', description: 'List selected projects' },
-  { name: 'resume', description: 'Show experience and background' },
+  { name: 'resume', description: 'Show education, skills, and experience' },
 ] as const
 
 export const KNOWN_COMMANDS = COMMANDS.map((command) => command.name)

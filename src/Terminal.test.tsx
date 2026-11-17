@@ -36,7 +36,7 @@ describe('Terminal', () => {
     fireEvent.keyDown(input, { key: 'Enter' })
 
     expect(screen.getByText('resume')).toBeTruthy()
-    expect(screen.getByText('resume: coming soon')).toBeTruthy()
+    expect(screen.getByRole('log').textContent).toContain('Education')
     expect(input).toHaveProperty('value', '')
   })
 
@@ -98,26 +98,13 @@ describe('Terminal', () => {
     }
   })
 
-  it('still shows a placeholder for resume', () => {
-    render(<Terminal />)
-    const input = screen.getByRole('textbox', { name: 'Command' })
-
-    fireEvent.change(input, { target: { value: 'resume' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-
-    const log = screen.getByRole('log')
-    expect(log.textContent).toContain('resume: coming soon')
-    expect(log.textContent).not.toContain(about.name)
-    expect(screen.queryByRole('link')).toBeNull()
-  })
-
   it('clears the scrollback and keeps the prompt usable', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })
 
-    fireEvent.change(input, { target: { value: 'resume' } })
+    fireEvent.change(input, { target: { value: 'about' } })
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(screen.getByText('resume: coming soon')).toBeTruthy()
+    expect(screen.getByText(about.name)).toBeTruthy()
 
     fireEvent.change(input, { target: { value: 'clear' } })
     fireEvent.keyDown(input, { key: 'Enter' })
@@ -125,14 +112,14 @@ describe('Terminal', () => {
     expect(screen.getByRole('log').textContent).toBe('')
     expect(input).toHaveProperty('value', '')
     expect(screen.getByText('visitor@portfolio')).toBeTruthy()
-    expect(screen.queryByText('resume: coming soon')).toBeNull()
+    expect(screen.queryByText(about.name)).toBeNull()
 
     fireEvent.change(input, { target: { value: 'help' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
     expect(screen.getByText('help')).toBeTruthy()
     expect(screen.getByRole('log').textContent).toContain('List available commands')
-    expect(screen.queryByText('resume: coming soon')).toBeNull()
+    expect(screen.queryByText(about.name)).toBeNull()
   })
 
   it('recalls earlier commands with the up and down arrow keys', () => {

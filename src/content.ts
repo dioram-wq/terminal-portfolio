@@ -12,6 +12,33 @@ export const about = {
     'Builds passion projects with AI pair programming (Cursor agents) under his direction.',
 } as const
 
+export type ResumeSection = {
+  heading: string
+  lines: readonly string[]
+}
+
+export const resume: readonly ResumeSection[] = [
+  {
+    heading: 'Education',
+    lines: [
+      'Toronto Metropolitan University (TMU), Computer Science',
+      'Lighthouse Labs, full-stack web development diploma',
+    ],
+  },
+  {
+    heading: 'Skills',
+    lines: [
+      'JavaScript, TypeScript, and React',
+      'HTML and CSS',
+      'Computer hardware and software support',
+    ],
+  },
+  {
+    heading: 'Experience',
+    lines: ['Best Buy Geek Squad, former technology specialist'],
+  },
+]
+
 export const projects: readonly Project[] = [
   {
     name: 'code-racer',

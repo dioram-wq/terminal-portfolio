@@ -25,18 +25,16 @@ describe('runLine', () => {
     ])
   })
 
-  it('keeps the typed line and uses the parsed name', () => {
-    expect(runLine('  resume   web  ')).toEqual([
-      { kind: 'echo', line: '  resume   web  ' },
-      { kind: 'output', line: 'resume: coming soon' },
-    ])
-  })
-
-  it('prints a placeholder for commands that are not implemented yet', () => {
-    expect(runLine('resume extra')).toEqual([
-      { kind: 'echo', line: 'resume extra' },
-      { kind: 'output', line: 'resume: coming soon' },
-    ])
+  it('keeps the typed line when resume is given extra arguments', () => {
+    const entries = runLine('  resume   web  ')
+    expect(entries[0]).toEqual({ kind: 'echo', line: '  resume   web  ' })
+    expect(entries.length).toBeGreaterThan(1)
+    expect(entries.slice(1).every((entry) => entry.kind === 'output')).toBe(
+      true,
+    )
+    expect(entries.map((entry) => entry.line).join('\n')).not.toContain(
+      'coming soon',
+    )
   })
 
   it('prints the about introduction from local content', () => {
@@ -69,13 +67,6 @@ describe('runLine', () => {
     expect(lines.join('\n')).not.toContain('coming soon')
   })
 
-  it('still prints a placeholder for resume', () => {
-    expect(runLine('resume')).toEqual([
-      { kind: 'echo', line: 'resume' },
-      { kind: 'output', line: 'resume: coming soon' },
-    ])
-  })
-
   it('treats command names as case-sensitive', () => {
     expect(runLine('Help')).toEqual([
       { kind: 'echo', line: 'Help' },
@@ -101,17 +92,16 @@ describe('runLine', () => {
 
 describe('applyLine', () => {
   it('empties the log on clear and still accepts the next line', () => {
-    const filled = applyLine([], 'resume')
+    const filled = applyLine([], 'about')
     expect(filled).toEqual([
-      { kind: 'echo', line: 'resume' },
-      { kind: 'output', line: 'resume: coming soon' },
+      { kind: 'echo', line: 'about' },
+      { kind: 'output', line: about.name },
+      { kind: 'output', line: about.introduction },
+      { kind: 'output', line: about.focus },
     ])
 
     const cleared = applyLine(filled, '  clear  ')
     expect(cleared).toEqual([])
-    expect(applyLine(cleared, 'resume')).toEqual([
-      { kind: 'echo', line: 'resume' },
-      { kind: 'output', line: 'resume: coming soon' },
-    ])
+    expect(applyLine(cleared, 'about')).toEqual(filled)
   })
 })
