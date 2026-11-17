@@ -27,15 +27,7 @@ export const resume: readonly ResumeSection[] = [
   },
   {
     heading: 'Skills',
-    lines: [
-      'JavaScript, TypeScript, and React',
-      'HTML and CSS',
-      'Computer hardware and software support',
-    ],
-  },
-  {
-    heading: 'Experience',
-    lines: ['Best Buy Geek Squad, former technology specialist'],
+    lines: ['JavaScript, TypeScript, and React', 'HTML and CSS'],
   },
 ]
 

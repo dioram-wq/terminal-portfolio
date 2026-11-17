@@ -67,7 +67,7 @@ describe('runLine', () => {
     expect(lines.join('\n')).not.toContain('coming soon')
   })
 
-  it('prints education, skills, and experience from local content', () => {
+  it('prints education and skills from local content', () => {
     const entries = runLine('resume')
     const lines = outputLines('resume')
     const fromContent = resume.flatMap((section, index) => {
@@ -88,11 +88,9 @@ describe('runLine', () => {
       'Skills',
       '  JavaScript, TypeScript, and React',
       '  HTML and CSS',
-      '  Computer hardware and software support',
-      '',
-      'Experience',
-      '  Best Buy Geek Squad, former technology specialist',
     ])
+    expect(lines.some((line) => line.trim() === 'Experience')).toBe(false)
+    expect(lines.join('\n')).not.toMatch(/Best Buy|Geek Squad|hardware/i)
     expect(lines.join('\n')).not.toContain('coming soon')
     expect(lines.join('\n')).not.toMatch(/\bGPA\b/i)
     expect(lines.join('\n')).not.toMatch(/\b(?:19|20)\d{2}\b/)
@@ -124,9 +122,7 @@ describe('runLine', () => {
     const resumeCommand = COMMANDS.find((command) => command.name === 'resume')
     const width = Math.max(...COMMANDS.map((command) => command.name.length))
 
-    expect(resumeCommand?.description).toBe(
-      'Show education, skills, and experience',
-    )
+    expect(resumeCommand?.description).toBe('Show education and skills')
     expect(outputLines('help')).toContain(
       `${'resume'.padEnd(width)}  ${resumeCommand?.description}`,
     )
