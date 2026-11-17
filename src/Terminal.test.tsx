@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { COMMANDS } from './commandParser.ts'
-import { about, projects } from './content.ts'
+import { about, projects, resume } from './content.ts'
 import { Terminal } from './Terminal.tsx'
 
 afterEach(() => {
@@ -96,6 +96,38 @@ describe('Terminal', () => {
       expect(link.getAttribute('target')).toBe('_blank')
       expect(link.getAttribute('rel')).toBe('noopener noreferrer')
     }
+  })
+
+  it('prints the resume sections', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'resume' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    const log = screen.getByRole('log')
+    expect(screen.getByText('resume')).toBeTruthy()
+    for (const section of resume) {
+      expect(log.textContent).toContain(section.heading)
+      for (const line of section.lines) {
+        expect(log.textContent).toContain(line)
+      }
+    }
+    expect(log.textContent).not.toContain('coming soon')
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('lists resume when help is run', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+    const resumeCommand = COMMANDS.find((command) => command.name === 'resume')
+
+    fireEvent.change(input, { target: { value: 'help' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    const log = screen.getByRole('log')
+    expect(log.textContent).toContain('resume')
+    expect(log.textContent).toContain(resumeCommand?.description)
   })
 
   it('clears the scrollback and keeps the prompt usable', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { COMMANDS, KNOWN_COMMANDS } from './commandParser.ts'
-import { about, projects } from './content.ts'
+import { about, projects, resume } from './content.ts'
 import { applyLine, runLine } from './runLine.ts'
 
 function outputLines(line: string): string[] {
@@ -65,6 +65,71 @@ describe('runLine', () => {
       ]),
     )
     expect(lines.join('\n')).not.toContain('coming soon')
+  })
+
+  it('prints education, skills, and experience from local content', () => {
+    const entries = runLine('resume')
+    const lines = outputLines('resume')
+    const fromContent = resume.flatMap((section, index) => {
+      const block = [
+        section.heading,
+        ...section.lines.map((line) => `  ${line}`),
+      ]
+      return index < resume.length - 1 ? [...block, ''] : block
+    })
+
+    expect(entries[0]).toEqual({ kind: 'echo', line: 'resume' })
+    expect(lines).toEqual(fromContent)
+    expect(lines).toEqual([
+      'Education',
+      '  Toronto Metropolitan University (TMU), Computer Science',
+      '  Lighthouse Labs, full-stack web development diploma',
+      '',
+      'Skills',
+      '  JavaScript, TypeScript, and React',
+      '  HTML and CSS',
+      '  Computer hardware and software support',
+      '',
+      'Experience',
+      '  Best Buy Geek Squad, former technology specialist',
+    ])
+    expect(lines.join('\n')).not.toContain('coming soon')
+    expect(lines.join('\n')).not.toMatch(/\bGPA\b/i)
+    expect(lines.join('\n')).not.toMatch(/\b(?:19|20)\d{2}\b/)
+  })
+
+  it('prints the same resume when extra arguments are given', () => {
+    expect(outputLines('resume extra')).toEqual(outputLines('resume'))
+    expect(runLine('resume extra')[0]).toEqual({
+      kind: 'echo',
+      line: 'resume extra',
+    })
+  })
+
+  it('indents resume details so long lines can wrap', () => {
+    const headings = new Set(resume.map((section) => section.heading))
+
+    for (const line of outputLines('resume')) {
+      if (line === '' || headings.has(line)) {
+        expect(line).not.toMatch(/^\s/)
+        continue
+      }
+      expect(line.startsWith('  ')).toBe(true)
+      expect(line.slice(2)).not.toMatch(/^\s/)
+      expect(line.slice(2)).not.toMatch(/\S{24,}/)
+    }
+  })
+
+  it('lists resume in help with its description', () => {
+    const resumeCommand = COMMANDS.find((command) => command.name === 'resume')
+    const width = Math.max(...COMMANDS.map((command) => command.name.length))
+
+    expect(resumeCommand?.description).toBe(
+      'Show education, skills, and experience',
+    )
+    expect(outputLines('help')).toContain(
+      `${'resume'.padEnd(width)}  ${resumeCommand?.description}`,
+    )
   })
 
   it('treats command names as case-sensitive', () => {
