@@ -25,9 +25,9 @@ describe('parseCommand', () => {
   })
 
   it('reports an unknown command', () => {
-    expect(parseCommand('ls -la')).toEqual({
+    expect(parseCommand('vim -la')).toEqual({
       kind: 'unknown',
-      name: 'ls',
+      name: 'vim',
     })
   })
 

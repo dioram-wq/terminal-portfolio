@@ -44,11 +44,11 @@ describe('Terminal', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })
 
-    fireEvent.change(input, { target: { value: 'ls -la' } })
+    fireEvent.change(input, { target: { value: 'vim -la' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
-    expect(screen.getByText('ls -la')).toBeTruthy()
-    expect(screen.getByText('command not found: ls')).toBeTruthy()
+    expect(screen.getByText('vim -la')).toBeTruthy()
+    expect(screen.getByText('command not found: vim')).toBeTruthy()
   })
 
   it('lists every known command when help is run', () => {

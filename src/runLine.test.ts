@@ -19,9 +19,9 @@ describe('runLine', () => {
   })
 
   it('reports an unknown command', () => {
-    expect(runLine('ls -la')).toEqual([
-      { kind: 'echo', line: 'ls -la' },
-      { kind: 'output', line: 'command not found: ls' },
+    expect(runLine('vim -la')).toEqual([
+      { kind: 'echo', line: 'vim -la' },
+      { kind: 'output', line: 'command not found: vim' },
     ])
   })
 

@@ -1,5 +1,11 @@
 import { COMMANDS, parseCommand } from './commandParser.ts'
-import { about, projects, resume } from './content.ts'
+import {
+  aboutText,
+  catLines,
+  lsLines,
+  projectsText,
+  resumeText,
+} from './filesystem.ts'
 
 export type ScrollbackEntry =
   | { kind: 'echo'; line: string }
@@ -9,57 +15,19 @@ type LineEffect =
   | { kind: 'append'; entries: ScrollbackEntry[] }
   | { kind: 'clear' }
 
-function helpOutput(): ScrollbackEntry[] {
+function output(lines: readonly string[]): ScrollbackEntry[] {
+  return lines.map((line): ScrollbackEntry => ({ kind: 'output', line }))
+}
+
+function helpLines(): string[] {
   const width = COMMANDS.reduce(
     (longest, command) => Math.max(longest, command.name.length),
     0,
   )
 
   return COMMANDS.map(
-    (command): ScrollbackEntry => ({
-      kind: 'output',
-      line: `${command.name.padEnd(width)}  ${command.description}`,
-    }),
+    (command) => `${command.name.padEnd(width)}  ${command.description}`,
   )
-}
-
-function aboutOutput(): ScrollbackEntry[] {
-  return [about.name, about.introduction, about.focus].map(
-    (line): ScrollbackEntry => ({ kind: 'output', line }),
-  )
-}
-
-function resumeOutput(): ScrollbackEntry[] {
-  return resume.flatMap((section, index): ScrollbackEntry[] => {
-    const entries: ScrollbackEntry[] = [
-      { kind: 'output', line: section.heading },
-      ...section.lines.map(
-        (line): ScrollbackEntry => ({ kind: 'output', line: `  ${line}` }),
-      ),
-    ]
-    if (index < resume.length - 1) {
-      entries.push({ kind: 'output', line: '' })
-    }
-    return entries
-  })
-}
-
-function projectsOutput(): ScrollbackEntry[] {
-  const width = projects.reduce(
-    (longest, project) => Math.max(longest, project.name.length),
-    0,
-  )
-
-  return projects.flatMap((project): ScrollbackEntry[] => [
-    {
-      kind: 'output',
-      line: `${project.name.padEnd(width)}  ${project.description}`,
-    },
-    {
-      kind: 'output',
-      line: `${''.padEnd(width)}  ${project.url}`,
-    },
-  ])
 }
 
 function effectFor(line: string): LineEffect {
@@ -82,16 +50,28 @@ function effectFor(line: string): LineEffect {
         return { kind: 'clear' }
       }
       if (parsed.name === 'help') {
-        return { kind: 'append', entries: [echo, ...helpOutput()] }
+        return { kind: 'append', entries: [echo, ...output(helpLines())] }
       }
       if (parsed.name === 'about') {
-        return { kind: 'append', entries: [echo, ...aboutOutput()] }
+        return { kind: 'append', entries: [echo, ...output(aboutText())] }
       }
       if (parsed.name === 'projects') {
-        return { kind: 'append', entries: [echo, ...projectsOutput()] }
+        return { kind: 'append', entries: [echo, ...output(projectsText())] }
       }
       if (parsed.name === 'resume') {
-        return { kind: 'append', entries: [echo, ...resumeOutput()] }
+        return { kind: 'append', entries: [echo, ...output(resumeText())] }
+      }
+      if (parsed.name === 'ls') {
+        return {
+          kind: 'append',
+          entries: [echo, ...output(lsLines(parsed.args))],
+        }
+      }
+      if (parsed.name === 'cat') {
+        return {
+          kind: 'append',
+          entries: [echo, ...output(catLines(parsed.args))],
+        }
       }
       return {
         kind: 'append',

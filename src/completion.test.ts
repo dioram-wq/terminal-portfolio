@@ -38,7 +38,7 @@ describe('completeCommand', () => {
   })
 
   it('leaves the input unchanged when nothing matches', () => {
-    expect(completeCommand('ls')).toEqual({ line: 'ls', matches: [] })
+    expect(completeCommand('vim')).toEqual({ line: 'vim', matches: [] })
     expect(completeCommand('zzz', ['help', 'projects'])).toEqual({
       line: 'zzz',
       matches: [],
