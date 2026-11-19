@@ -20,6 +20,14 @@ npm test         # unit tests
 npm run preview  # serve the production build
 ```
 
+GitHub Actions runs that build and those tests. `.github/workflows/ci.yml` runs on every push and pull request to `main`, uses Node.js 22, and runs `npm ci`, `npm run build`, and `npm test`.
+
+## GitHub Pages
+
+`.github/workflows/pages.yml` runs on every push to `main`. It runs the tests, builds `dist`, and deploys that folder with `actions/upload-pages-artifact` and `actions/deploy-pages`. The build sets `GITHUB_PAGES=true`, and Vite then uses `base: '/terminal-portfolio/'` so the asset URLs match a project site. Local `npm run dev`, `npm run build`, and `npm run preview` leave that variable unset and keep `base: '/'`.
+
+Pages is not enabled on this repository yet. In the repository settings, open Pages and set Build and deployment → Source to GitHub Actions. Until that source is selected, the deploy workflow cannot publish the site.
+
 ## Roadmap
 
 - [x] Command parser module with unit tests. Split a line into a command name and arguments, and report an empty or unknown command.
@@ -30,4 +38,4 @@ npm run preview  # serve the production build
 - [x] Command history with the up and down arrow keys. Up recalls older commands, and Down past the newest entry returns to an empty draft.
 - [x] Tab completion for command names.
 - [x] A layout that stays usable on a narrow screen. The prompt, input, and scrollback fit a phone width, long lines wrap, and the page does not scroll sideways.
-- [ ] A deploy target.
+- [ ] A deploy target. CI and a GitHub Pages workflow are in the repo. Publishing still needs Pages enabled in the repository settings (Source: GitHub Actions), and no live URL has been confirmed.
