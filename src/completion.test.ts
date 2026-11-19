@@ -37,6 +37,23 @@ describe('completeCommand', () => {
     })
   })
 
+  it('completes ls and cat from the shared command list', () => {
+    expect(completeCommand('l')).toEqual({
+      line: 'ls ',
+      matches: ['ls'],
+    })
+
+    expect(completeCommand('cat')).toEqual({
+      line: 'cat ',
+      matches: ['cat'],
+    })
+
+    expect(completeCommand('c')).toEqual({
+      line: 'c',
+      matches: ['clear', 'cat'],
+    })
+  })
+
   it('leaves the input unchanged when nothing matches', () => {
     expect(completeCommand('vim')).toEqual({ line: 'vim', matches: [] })
     expect(completeCommand('zzz', ['help', 'projects'])).toEqual({

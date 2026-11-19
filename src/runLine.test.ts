@@ -135,6 +135,102 @@ describe('runLine', () => {
     ])
   })
 
+  it('lists the virtual root and one file per project', () => {
+    expect(runLine('ls')[0]).toEqual({ kind: 'echo', line: 'ls' })
+    expect(outputLines('ls')).toEqual([
+      'about.txt',
+      'projects/',
+      'resume.txt',
+    ])
+    expect(outputLines('ls .')).toEqual(outputLines('ls'))
+    expect(outputLines('ls /')).toEqual(outputLines('ls'))
+    expect(outputLines('ls ~')).toEqual(outputLines('ls'))
+    expect(outputLines('ls projects/..')).toEqual(outputLines('ls'))
+
+    const names = projects.map((project) => `${project.name}.txt`).sort()
+    expect(outputLines('ls projects')).toEqual(names)
+    expect(outputLines('ls projects/')).toEqual(names)
+    expect(outputLines('ls ./projects')).toEqual(names)
+  })
+
+  it('prints a file path and reports paths ls cannot use', () => {
+    expect(outputLines('ls about.txt')).toEqual(['about.txt'])
+    expect(outputLines('ls /resume.txt')).toEqual(['/resume.txt'])
+    expect(outputLines('ls nope')).toEqual([
+      'ls: nope: No such file or directory',
+    ])
+    expect(outputLines('ls about.txt/extra')).toEqual([
+      'ls: about.txt/extra: Not a directory',
+    ])
+    expect(outputLines('ls projects about.txt nope')).toEqual([
+      'projects:',
+      ...projects.map((project) => `${project.name}.txt`).sort(),
+      '',
+      'about.txt',
+      '',
+      'ls: nope: No such file or directory',
+    ])
+  })
+
+  it('prints the same text as about, resume, and projects', () => {
+    expect(runLine('cat   about.txt')[0]).toEqual({
+      kind: 'echo',
+      line: 'cat   about.txt',
+    })
+    expect(outputLines('cat about.txt')).toEqual(outputLines('about'))
+    expect(outputLines('cat ~/resume.txt')).toEqual(outputLines('resume'))
+    expect(outputLines('cat projects/../about.txt')).toEqual(
+      outputLines('about'),
+    )
+    expect(outputLines('cat about.txt resume.txt')).toEqual([
+      ...outputLines('about'),
+      ...outputLines('resume'),
+    ])
+
+    const listed = outputLines('projects')
+    for (const project of projects) {
+      const lines = outputLines(`cat projects/${project.name}.txt`)
+      const start = listed.indexOf(lines[0])
+      expect(lines).toHaveLength(2)
+      expect(listed.slice(start, start + 2)).toEqual(lines)
+      expect(lines[0]).toContain(project.description)
+      expect(lines[1].trim()).toBe(project.url)
+    }
+  })
+
+  it('reports a missing cat operand, a missing file, and a directory', () => {
+    expect(outputLines('cat')).toEqual(['cat: missing operand'])
+    expect(outputLines('cat foo')).toEqual([
+      'cat: foo: No such file or directory',
+    ])
+    expect(outputLines('cat projects')).toEqual([
+      'cat: projects: Is a directory',
+    ])
+    expect(outputLines('cat projects/')).toEqual([
+      'cat: projects/: Is a directory',
+    ])
+    expect(outputLines('cat about.txt/')).toEqual([
+      'cat: about.txt/: Not a directory',
+    ])
+    expect(outputLines('cat foo about.txt')).toEqual([
+      'cat: foo: No such file or directory',
+      ...outputLines('about'),
+    ])
+  })
+
+  it('lists ls and cat in help and keeps their names case-sensitive', () => {
+    const width = Math.max(...COMMANDS.map((command) => command.name.length))
+    const lines = outputLines('help')
+
+    for (const name of ['ls', 'cat']) {
+      const command = COMMANDS.find((entry) => entry.name === name)
+      expect(lines).toContain(`${name.padEnd(width)}  ${command?.description}`)
+    }
+
+    expect(outputLines('LS')).toEqual(['command not found: LS'])
+    expect(outputLines('CAT')).toEqual(['command not found: CAT'])
+  })
+
   it('lists every known command with its description', () => {
     const entries = runLine('help')
     const lines = entries

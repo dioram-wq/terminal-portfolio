@@ -98,6 +98,75 @@ describe('Terminal', () => {
     }
   })
 
+  it('lists the virtual root when ls is run', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'ls' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    const log = screen.getByRole('log')
+    expect(screen.getByText('ls')).toBeTruthy()
+    expect(log.textContent).toContain('about.txt')
+    expect(log.textContent).toContain('projects/')
+    expect(log.textContent).toContain('resume.txt')
+  })
+
+  it('prints a project file and link when cat is run', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+    const project = projects[0]
+
+    fireEvent.change(input, {
+      target: { value: `cat projects/${project.name}.txt` },
+    })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    const log = screen.getByRole('log')
+    expect(log.textContent).toContain(project.description)
+    const link = screen.getByRole('link', { name: project.url })
+    expect(link.getAttribute('href')).toBe(project.url)
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('prints shell errors for cat', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'cat' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(screen.getByText('cat: missing operand')).toBeTruthy()
+
+    fireEvent.change(input, { target: { value: 'cat projects' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(screen.getByText('cat: projects: Is a directory')).toBeTruthy()
+
+    fireEvent.change(input, { target: { value: 'cat foo' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(screen.getByText('cat: foo: No such file or directory')).toBeTruthy()
+  })
+
+  it('completes ls when Tab is pressed', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'l' } })
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false)
+
+    expect(input).toHaveProperty('value', 'ls ')
+    expect(input).toHaveProperty('selectionStart', 'ls '.length)
+    expect(screen.getByRole('log').textContent).toBe('')
+
+    fireEvent.change(input, { target: { value: 'c' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+
+    expect(input).toHaveProperty('value', 'c')
+    const log = screen.getByRole('log').textContent
+    expect(log).toContain('clear')
+    expect(log).toContain('cat')
+  })
+
   it('prints the resume sections', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })
