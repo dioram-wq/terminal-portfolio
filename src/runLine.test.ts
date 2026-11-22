@@ -11,23 +11,25 @@ function outputLines(line: string): string[] {
 
 describe('runLine', () => {
   it('echoes an empty line and prints no result', () => {
-    expect(runLine('')).toEqual([{ kind: 'echo', line: '' }])
+    expect(runLine('')).toEqual([{ kind: 'echo', line: '', cwd: '' }])
   })
 
   it('echoes a whitespace-only line and prints no result', () => {
-    expect(runLine(' \t  \n ')).toEqual([{ kind: 'echo', line: ' \t  \n ' }])
+    expect(runLine(' \t  \n ')).toEqual([
+      { kind: 'echo', line: ' \t  \n ', cwd: '' },
+    ])
   })
 
   it('reports an unknown command', () => {
     expect(runLine('vim -la')).toEqual([
-      { kind: 'echo', line: 'vim -la' },
+      { kind: 'echo', line: 'vim -la', cwd: '' },
       { kind: 'output', line: 'command not found: vim' },
     ])
   })
 
   it('keeps the typed line when resume is given extra arguments', () => {
     const entries = runLine('  resume   web  ')
-    expect(entries[0]).toEqual({ kind: 'echo', line: '  resume   web  ' })
+    expect(entries[0]).toEqual({ kind: 'echo', line: '  resume   web  ', cwd: '' })
     expect(entries.length).toBeGreaterThan(1)
     expect(entries.slice(1).every((entry) => entry.kind === 'output')).toBe(
       true,
@@ -41,6 +43,7 @@ describe('runLine', () => {
     expect(runLine('about extra')[0]).toEqual({
       kind: 'echo',
       line: 'about extra',
+      cwd: '',
     })
     expect(outputLines('about extra')).toEqual([
       about.name,
@@ -57,7 +60,11 @@ describe('runLine', () => {
       .map((entry) => entry.line)
     const width = Math.max(...projects.map((project) => project.name.length))
 
-    expect(entries[0]).toEqual({ kind: 'echo', line: '  projects   web  ' })
+    expect(entries[0]).toEqual({
+      kind: 'echo',
+      line: '  projects   web  ',
+      cwd: '',
+    })
     expect(lines).toEqual(
       projects.flatMap((project) => [
         `${project.name.padEnd(width)}  ${project.description}`,
@@ -78,7 +85,7 @@ describe('runLine', () => {
       return index < resume.length - 1 ? [...block, ''] : block
     })
 
-    expect(entries[0]).toEqual({ kind: 'echo', line: 'resume' })
+    expect(entries[0]).toEqual({ kind: 'echo', line: 'resume', cwd: '' })
     expect(lines).toEqual(fromContent)
     expect(lines).toEqual([
       'Education',
@@ -101,6 +108,7 @@ describe('runLine', () => {
     expect(runLine('resume extra')[0]).toEqual({
       kind: 'echo',
       line: 'resume extra',
+      cwd: '',
     })
   })
 
@@ -130,13 +138,13 @@ describe('runLine', () => {
 
   it('treats command names as case-sensitive', () => {
     expect(runLine('Help')).toEqual([
-      { kind: 'echo', line: 'Help' },
+      { kind: 'echo', line: 'Help', cwd: '' },
       { kind: 'output', line: 'command not found: Help' },
     ])
   })
 
   it('lists the virtual root and one file per project', () => {
-    expect(runLine('ls')[0]).toEqual({ kind: 'echo', line: 'ls' })
+    expect(runLine('ls')[0]).toEqual({ kind: 'echo', line: 'ls', cwd: '' })
     expect(outputLines('ls')).toEqual([
       'about.txt',
       'projects/',
@@ -176,6 +184,7 @@ describe('runLine', () => {
     expect(runLine('cat   about.txt')[0]).toEqual({
       kind: 'echo',
       line: 'cat   about.txt',
+      cwd: '',
     })
     expect(outputLines('cat about.txt')).toEqual(outputLines('about'))
     expect(outputLines('cat ~/resume.txt')).toEqual(outputLines('resume'))
@@ -237,7 +246,7 @@ describe('runLine', () => {
       .filter((entry) => entry.kind === 'output')
       .map((entry) => entry.line)
 
-    expect(entries[0]).toEqual({ kind: 'echo', line: 'help' })
+    expect(entries[0]).toEqual({ kind: 'echo', line: 'help', cwd: '' })
     expect(lines.map((line) => line.split(' ')[0])).toEqual(KNOWN_COMMANDS)
 
     for (const command of COMMANDS) {
@@ -251,7 +260,7 @@ describe('applyLine', () => {
   it('empties the log on clear and still accepts the next line', () => {
     const filled = applyLine([], 'about')
     expect(filled).toEqual([
-      { kind: 'echo', line: 'about' },
+      { kind: 'echo', line: 'about', cwd: '' },
       { kind: 'output', line: about.name },
       { kind: 'output', line: about.introduction },
       { kind: 'output', line: about.focus },

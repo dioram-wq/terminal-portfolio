@@ -50,7 +50,7 @@ describe('completeCommand', () => {
 
     expect(completeCommand('c')).toEqual({
       line: 'c',
-      matches: ['clear', 'cat'],
+      matches: ['clear', 'cat', 'cd'],
     })
   })
 

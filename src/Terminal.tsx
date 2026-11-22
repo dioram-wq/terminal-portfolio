@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import { completeCommand } from './completion.ts'
+import { formatCwd } from './filesystem.ts'
 import {
   createHistory,
   recallNext,
@@ -13,7 +14,7 @@ import {
   recordCommand,
   type CommandHistory,
 } from './history.ts'
-import { applyLine, type ScrollbackEntry } from './runLine.ts'
+import { applyLine, cwdAfter, type ScrollbackEntry } from './runLine.ts'
 
 const URL_PATTERN = /https?:\/\/[^\s]+/g
 
@@ -53,6 +54,7 @@ function outputLine(line: string): ReactNode {
 export function Terminal() {
   const [log, setLog] = useState<ScrollbackEntry[]>([])
   const [draft, setDraft] = useState('')
+  const [cwd, setCwd] = useState('')
   const [history, setHistory] = useState<CommandHistory>(createHistory)
   const inputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -122,7 +124,9 @@ export function Terminal() {
     }
 
     event.preventDefault()
-    setLog((current) => applyLine(current, draft))
+    const nextCwd = cwdAfter(draft, cwd)
+    setLog((current) => applyLine(current, draft, cwd))
+    setCwd(nextCwd)
     setHistory((current) => recordCommand(current, draft))
     setDraft('')
   }
@@ -145,7 +149,7 @@ export function Terminal() {
           <div className="terminal__log" role="log">
             {log.map((entry, index) =>
               entry.kind === 'echo' ? (
-                <Prompt key={index} logged>
+                <Prompt key={index} logged cwd={entry.cwd}>
                   <span className="terminal__command">{entry.line}</span>
                 </Prompt>
               ) : (
@@ -155,7 +159,7 @@ export function Terminal() {
               ),
             )}
           </div>
-          <Prompt>
+          <Prompt cwd={cwd}>
             <input
               ref={inputRef}
               className="terminal__input"
@@ -180,9 +184,11 @@ export function Terminal() {
 function Prompt({
   children,
   logged = false,
+  cwd = '',
 }: {
   children: ReactNode
   logged?: boolean
+  cwd?: string
 }) {
   return (
     <div
@@ -192,7 +198,7 @@ function Prompt({
     >
       <span className="terminal__prefix">
         <span className="terminal__user">visitor@portfolio</span>
-        <span className="terminal__path">:~</span>
+        <span className="terminal__path">:{formatCwd(cwd)}</span>
         <span className="terminal__sigil">$</span>
       </span>
       {children}

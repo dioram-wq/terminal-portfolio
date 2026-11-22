@@ -6,6 +6,8 @@ export const COMMANDS = [
   { name: 'resume', description: 'Show education and skills' },
   { name: 'ls', description: 'List directory contents' },
   { name: 'cat', description: 'Print a file' },
+  { name: 'cd', description: 'Change the current directory' },
+  { name: 'pwd', description: 'Print the current directory' },
 ] as const
 
 export const KNOWN_COMMANDS = COMMANDS.map((command) => command.name)

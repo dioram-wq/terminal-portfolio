@@ -97,17 +97,43 @@ export function projectsText(): readonly string[] {
   return projectEntries.flatMap((entry) => entry.lines)
 }
 
-function lookup(path: string): LookupResult {
-  // The prompt's home directory is this virtual root.
+type WalkResult =
+  | { ok: true; node: FsNode; segments: string[] }
+  | { ok: false; reason: 'missing' | 'not_directory' }
+
+function isHomePath(path: string): boolean {
+  return path === '~' || path.startsWith('~/')
+}
+
+// The prompt's home directory is this virtual root. An empty cwd is that root.
+function walk(path: string, cwd: string): WalkResult {
+  const absolute = isHomePath(path) || path.startsWith('/')
   let remainder = path
-  if (remainder === '~' || remainder.startsWith('~/')) {
+  if (isHomePath(remainder)) {
     remainder = remainder.slice(1)
   }
 
   const trailingSlash = remainder.endsWith('/')
   const segments = remainder.split('/').filter((segment) => segment !== '')
+  const base = absolute ? [] : cwd.split('/').filter((segment) => segment !== '')
   let current: FsNode = root
   const parents: FsDirectory[] = []
+  const canonical: string[] = []
+
+  for (const segment of base) {
+    if (current.kind !== 'directory') {
+      return { ok: false, reason: 'not_directory' }
+    }
+    const child: FsNode | undefined = current.children.find(
+      (entry) => entry.name === segment,
+    )
+    if (!child) {
+      return { ok: false, reason: 'missing' }
+    }
+    parents.push(current)
+    canonical.push(segment)
+    current = child
+  }
 
   for (const segment of segments) {
     if (segment === '.') {
@@ -118,7 +144,9 @@ function lookup(path: string): LookupResult {
       if (current.kind !== 'directory') {
         return { ok: false, reason: 'not_directory' }
       }
-      current = parents.pop() ?? root
+      const parent = parents.pop()
+      canonical.pop()
+      current = parent ?? root
       continue
     }
 
@@ -134,6 +162,7 @@ function lookup(path: string): LookupResult {
     }
 
     parents.push(current)
+    canonical.push(segment)
     current = child
   }
 
@@ -141,11 +170,23 @@ function lookup(path: string): LookupResult {
     return { ok: false, reason: 'not_directory' }
   }
 
-  return { ok: true, node: current }
+  return { ok: true, node: current, segments: canonical }
+}
+
+function lookup(path: string, cwd: string): LookupResult {
+  const found = walk(path, cwd)
+  if (!found.ok) {
+    return found
+  }
+  return { ok: true, node: found.node }
+}
+
+export function formatCwd(cwd: string): string {
+  return cwd === '' ? '~' : `~/${cwd}`
 }
 
 function pathError(
-  command: 'ls' | 'cat',
+  command: 'ls' | 'cat' | 'cd',
   path: string,
   reason: 'missing' | 'not_directory' | 'directory',
 ): string {
@@ -164,12 +205,12 @@ function listNames(directory: FsDirectory): string[] {
   )
 }
 
-export function lsLines(args: readonly string[]): string[] {
+export function lsLines(args: readonly string[], cwd = ''): string[] {
   const targets = args.length === 0 ? ['.'] : args
   const blocks: string[][] = []
 
   for (const target of targets) {
-    const found = lookup(target)
+    const found = lookup(target, cwd)
     if (!found.ok) {
       blocks.push([pathError('ls', target, found.reason)])
       continue
@@ -192,14 +233,14 @@ export function lsLines(args: readonly string[]): string[] {
   return lines
 }
 
-export function catLines(args: readonly string[]): string[] {
+export function catLines(args: readonly string[], cwd = ''): string[] {
   if (args.length === 0) {
     return ['cat: missing operand']
   }
 
   const lines: string[] = []
   for (const target of args) {
-    const found = lookup(target)
+    const found = lookup(target, cwd)
     if (!found.ok) {
       lines.push(pathError('cat', target, found.reason))
       continue
@@ -211,4 +252,30 @@ export function catLines(args: readonly string[]): string[] {
     lines.push(...found.node.lines)
   }
   return lines
+}
+
+export function pwdLines(cwd: string): string[] {
+  return [formatCwd(cwd)]
+}
+
+export function changeDirectory(
+  cwd: string,
+  args: readonly string[],
+): { cwd: string; lines: string[] } {
+  if (args.length === 0) {
+    return { cwd: '', lines: [] }
+  }
+  if (args.length > 1) {
+    return { cwd, lines: ['cd: too many arguments'] }
+  }
+
+  const target = args[0]
+  const found = walk(target, cwd)
+  if (!found.ok) {
+    return { cwd, lines: [pathError('cd', target, found.reason)] }
+  }
+  if (found.node.kind !== 'directory') {
+    return { cwd, lines: [pathError('cd', target, 'not_directory')] }
+  }
+  return { cwd: found.segments.join('/'), lines: [] }
 }
