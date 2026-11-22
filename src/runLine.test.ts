@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { COMMANDS, KNOWN_COMMANDS } from './commandParser.ts'
 import { about, projects, resume } from './content.ts'
-import { applyLine, runLine } from './runLine.ts'
+import { applyLine, cwdAfter, runLine } from './runLine.ts'
 
-function outputLines(line: string): string[] {
-  return runLine(line)
+function outputLines(line: string, cwd = ''): string[] {
+  return runLine(line, cwd)
     .filter((entry) => entry.kind === 'output')
     .map((entry) => entry.line)
 }
@@ -269,5 +269,152 @@ describe('applyLine', () => {
     const cleared = applyLine(filled, '  clear  ')
     expect(cleared).toEqual([])
     expect(applyLine(cleared, 'about')).toEqual(filled)
+  })
+})
+
+describe('working directory', () => {
+  const projectNames = projects.map((project) => `${project.name}.txt`).sort()
+
+  it('prints ~ at the root', () => {
+    expect(runLine('pwd')[0]).toEqual({ kind: 'echo', line: 'pwd', cwd: '' })
+    expect(outputLines('pwd')).toEqual(['~'])
+    expect(outputLines('  pwd  extra')).toEqual(['~'])
+    expect(cwdAfter('pwd')).toBe('')
+  })
+
+  it('enters projects and resolves ls and cat from there', () => {
+    expect(outputLines('cd projects')).toEqual([])
+    expect(cwdAfter('cd projects')).toBe('projects')
+    expect(runLine('  cd   projects  ')[0]).toEqual({
+      kind: 'echo',
+      line: '  cd   projects  ',
+      cwd: '',
+    })
+    expect(cwdAfter('  cd   projects  ')).toBe('projects')
+
+    const cwd = 'projects'
+    expect(outputLines('pwd', cwd)).toEqual(['~/projects'])
+    expect(runLine('pwd', cwd)[0]).toEqual({
+      kind: 'echo',
+      line: 'pwd',
+      cwd: 'projects',
+    })
+    expect(outputLines('ls', cwd)).toEqual(projectNames)
+    expect(outputLines('ls .', cwd)).toEqual(projectNames)
+    expect(outputLines('ls ./', cwd)).toEqual(projectNames)
+    expect(outputLines('ls ../', cwd)).toEqual(outputLines('ls'))
+    expect(outputLines('ls ../../', cwd)).toEqual(outputLines('ls'))
+    expect(outputLines('ls /', cwd)).toEqual(outputLines('ls'))
+    expect(outputLines('ls ~', cwd)).toEqual(outputLines('ls'))
+    expect(outputLines('ls about.txt', cwd)).toEqual([
+      'ls: about.txt: No such file or directory',
+    ])
+    expect(outputLines('ls ../about.txt', cwd)).toEqual(['../about.txt'])
+
+    for (const project of projects) {
+      expect(outputLines(`cat ${project.name}.txt`, cwd)).toEqual(
+        outputLines(`cat projects/${project.name}.txt`),
+      )
+    }
+    expect(outputLines('cat ../about.txt', cwd)).toEqual(outputLines('about'))
+    expect(outputLines('cat ./../about.txt', cwd)).toEqual(outputLines('about'))
+    expect(outputLines('cat ~/resume.txt', cwd)).toEqual(outputLines('resume'))
+    expect(outputLines('cat /about.txt', cwd)).toEqual(outputLines('about'))
+    expect(outputLines('cat missing.txt', cwd)).toEqual([
+      'cat: missing.txt: No such file or directory',
+    ])
+  })
+
+  it('returns home with cd .., cd, cd ~, and an absolute root', () => {
+    const cwd = 'projects'
+    for (const line of ['cd ..', 'cd', 'cd ~', 'cd ~/', 'cd /', 'cd ../..']) {
+      expect(cwdAfter(line, cwd)).toBe('')
+      expect(outputLines(line, cwd)).toEqual([])
+    }
+    expect(outputLines('pwd', cwdAfter('cd ..', cwd))).toEqual(['~'])
+  })
+
+  it('stays at the root when cd moves above it', () => {
+    expect(cwdAfter('cd ..')).toBe('')
+    expect(outputLines('cd ..')).toEqual([])
+    expect(outputLines('pwd', cwdAfter('cd ..'))).toEqual(['~'])
+    expect(outputLines('ls', cwdAfter('cd ../..'))).toEqual(outputLines('ls'))
+  })
+
+  it('canonicalizes dotted, home, and absolute paths', () => {
+    expect(cwdAfter('cd /projects')).toBe('projects')
+    expect(cwdAfter('cd ~/projects')).toBe('projects')
+    expect(cwdAfter('cd ./projects')).toBe('projects')
+    expect(cwdAfter('cd projects/')).toBe('projects')
+    expect(cwdAfter('cd projects/.')).toBe('projects')
+    expect(cwdAfter('cd ./projects/../projects')).toBe('projects')
+    expect(cwdAfter('cd ../projects', 'projects')).toBe('projects')
+    expect(cwdAfter('cd .', 'projects')).toBe('projects')
+    expect(outputLines('pwd', cwdAfter('cd /projects'))).toEqual([
+      '~/projects',
+    ])
+  })
+
+  it('prints a shell error and stays put for a file or a missing path', () => {
+    expect(outputLines('cd nope')).toEqual([
+      'cd: nope: No such file or directory',
+    ])
+    expect(cwdAfter('cd nope')).toBe('')
+    expect(outputLines('cd about.txt')).toEqual([
+      'cd: about.txt: Not a directory',
+    ])
+    expect(cwdAfter('cd about.txt')).toBe('')
+    expect(outputLines('cd about.txt/')).toEqual([
+      'cd: about.txt/: Not a directory',
+    ])
+    expect(outputLines('cd about.txt/extra')).toEqual([
+      'cd: about.txt/extra: Not a directory',
+    ])
+    expect(outputLines('cd missing.txt', 'projects')).toEqual([
+      'cd: missing.txt: No such file or directory',
+    ])
+    expect(cwdAfter('cd missing.txt', 'projects')).toBe('projects')
+    expect(outputLines('cd ../about.txt', 'projects')).toEqual([
+      'cd: ../about.txt: Not a directory',
+    ])
+    expect(cwdAfter('cd ../about.txt', 'projects')).toBe('projects')
+    expect(outputLines('cd projects extra')).toEqual(['cd: too many arguments'])
+    expect(cwdAfter('cd projects extra')).toBe('')
+    expect(cwdAfter('cd .. extra', 'projects')).toBe('projects')
+  })
+
+  it('keeps the directory across other commands and records it on each echo', () => {
+    let cwd = ''
+    let log = applyLine([], 'cd projects', cwd)
+    cwd = cwdAfter('cd projects', cwd)
+    log = applyLine(log, 'pwd', cwd)
+    cwd = cwdAfter('pwd', cwd)
+
+    expect(cwd).toBe('projects')
+    expect(log).toEqual([
+      { kind: 'echo', line: 'cd projects', cwd: '' },
+      { kind: 'echo', line: 'pwd', cwd: 'projects' },
+      { kind: 'output', line: '~/projects' },
+    ])
+    expect(cwdAfter('ls', cwd)).toBe('projects')
+    expect(cwdAfter('cat missing.txt', cwd)).toBe('projects')
+    expect(cwdAfter('help', cwd)).toBe('projects')
+    expect(cwdAfter('clear', cwd)).toBe('projects')
+    expect(applyLine(log, 'clear', cwd)).toEqual([])
+    expect(cwdAfter('cd nope', cwd)).toBe('projects')
+  })
+
+  it('lists cd and pwd in help and keeps their names case-sensitive', () => {
+    const width = Math.max(...COMMANDS.map((command) => command.name.length))
+    const lines = outputLines('help')
+
+    for (const name of ['cd', 'pwd']) {
+      const command = COMMANDS.find((entry) => entry.name === name)
+      expect(lines).toContain(`${name.padEnd(width)}  ${command?.description}`)
+    }
+
+    expect(outputLines('CD')).toEqual(['command not found: CD'])
+    expect(outputLines('PWD')).toEqual(['command not found: PWD'])
+    expect(cwdAfter('CD')).toBe('')
   })
 })

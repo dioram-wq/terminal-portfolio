@@ -8,6 +8,17 @@ afterEach(() => {
   cleanup()
 })
 
+function promptPaths(): string[] {
+  return [...document.querySelectorAll('.terminal__path')].map(
+    (element) => element.textContent ?? '',
+  )
+}
+
+function runCommand(input: HTMLElement, line: string) {
+  fireEvent.change(input, { target: { value: line } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+}
+
 describe('Terminal', () => {
   it('shows a welcome message and a prompt', () => {
     render(<Terminal />)
@@ -336,6 +347,82 @@ describe('Terminal', () => {
     fireEvent.keyDown(input, { key: 'Tab' })
     expect(input).toHaveProperty('value', 'help extra')
     expect(log.textContent).not.toContain('help extra')
+  })
+
+  it('shows the current directory in the prompt', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+    const project = projects[0]
+
+    expect(promptPaths()).toEqual([':~'])
+
+    runCommand(input, 'cd projects')
+    expect(promptPaths()).toEqual([':~', ':~/projects'])
+
+    runCommand(input, 'pwd')
+    expect(screen.getByText('~/projects')).toBeTruthy()
+    expect(promptPaths()).toEqual([':~', ':~/projects', ':~/projects'])
+
+    runCommand(input, 'ls')
+    const log = screen.getByRole('log')
+    for (const entry of projects) {
+      expect(log.textContent).toContain(`${entry.name}.txt`)
+    }
+    expect(log.textContent).not.toContain('resume.txt')
+
+    runCommand(input, `cat ${project.name}.txt`)
+    expect(log.textContent).toContain(project.description)
+    const link = screen.getByRole('link', { name: project.url })
+    expect(link.getAttribute('href')).toBe(project.url)
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer')
+
+    runCommand(input, 'cat ../about.txt')
+    expect(log.textContent).toContain(about.name)
+
+    runCommand(input, 'cd ..')
+    expect(promptPaths().at(-1)).toBe(':~')
+    expect(promptPaths().at(-2)).toBe(':~/projects')
+
+    runCommand(input, 'cd about.txt')
+    expect(screen.getByText('cd: about.txt: Not a directory')).toBeTruthy()
+    expect(promptPaths().at(-1)).toBe(':~')
+
+    runCommand(input, 'cd nope')
+    expect(
+      screen.getByText('cd: nope: No such file or directory'),
+    ).toBeTruthy()
+    expect(promptPaths().at(-1)).toBe(':~')
+  })
+
+  it('keeps the current directory when the log is cleared', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    runCommand(input, 'cd projects')
+    runCommand(input, 'clear')
+
+    expect(screen.getByRole('log').textContent).toBe('')
+    expect(promptPaths()).toEqual([':~/projects'])
+
+    runCommand(input, 'pwd')
+    expect(screen.getByText('~/projects')).toBeTruthy()
+    expect(promptPaths()).toEqual([':~/projects', ':~/projects'])
+  })
+
+  it('completes cd and pwd when Tab is pressed', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    fireEvent.change(input, { target: { value: 'pw' } })
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false)
+    expect(input).toHaveProperty('value', 'pwd ')
+    expect(input).toHaveProperty('selectionStart', 'pwd '.length)
+
+    fireEvent.change(input, { target: { value: 'cd' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'cd ')
+    expect(screen.getByRole('log').textContent).toBe('')
   })
 
   it('leaves the draft alone while an IME composition is active', () => {

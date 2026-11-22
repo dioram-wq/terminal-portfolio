@@ -54,6 +54,18 @@ describe('completeCommand', () => {
     })
   })
 
+  it('completes cd and pwd from the shared command list', () => {
+    expect(completeCommand('cd')).toEqual({
+      line: 'cd ',
+      matches: ['cd'],
+    })
+
+    expect(completeCommand('pw')).toEqual({
+      line: 'pwd ',
+      matches: ['pwd'],
+    })
+  })
+
   it('leaves the input unchanged when nothing matches', () => {
     expect(completeCommand('vim')).toEqual({ line: 'vim', matches: [] })
     expect(completeCommand('zzz', ['help', 'projects'])).toEqual({
