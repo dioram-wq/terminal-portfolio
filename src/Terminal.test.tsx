@@ -410,6 +410,47 @@ describe('Terminal', () => {
     expect(promptPaths()).toEqual([':~/projects', ':~/projects'])
   })
 
+  it('completes a path argument when Tab is pressed', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+    const nested = projects.filter((project) => project.name.startsWith('c'))
+    expect(nested).toHaveLength(1)
+
+    fireEvent.change(input, { target: { value: 'cat ab' } })
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false)
+    expect(input).toHaveProperty('value', 'cat about.txt')
+    expect(input).toHaveProperty('selectionStart', 'cat about.txt'.length)
+    expect(input).toHaveProperty('selectionEnd', 'cat about.txt'.length)
+    expect(screen.getByRole('log').textContent).toBe('')
+
+    fireEvent.change(input, { target: { value: 'cd pro' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'cd projects/')
+    expect(input).toHaveProperty('selectionStart', 'cd projects/'.length)
+
+    fireEvent.change(input, { target: { value: 'cat projects/' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    const listed = screen.getByRole('log').textContent ?? ''
+    for (const project of projects) {
+      expect(listed).toContain(`${project.name}.txt`)
+    }
+
+    runCommand(input, 'cd projects')
+    expect(promptPaths().at(-1)).toBe(':~/projects')
+
+    fireEvent.change(input, { target: { value: 'cat c' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', `cat ${nested[0]?.name}.txt`)
+
+    fireEvent.change(input, { target: { value: 'cd a' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'cd a')
+
+    fireEvent.change(input, { target: { value: 'cat ../ab' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'cat ../about.txt')
+  })
+
   it('completes cd and pwd when Tab is pressed', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })
