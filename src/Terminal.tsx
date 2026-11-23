@@ -5,6 +5,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react'
+import { KNOWN_COMMANDS } from './commandParser.ts'
 import { completeCommand } from './completion.ts'
 import { formatCwd } from './filesystem.ts'
 import {
@@ -104,7 +105,7 @@ export function Terminal() {
 
     if (event.key === 'Tab') {
       event.preventDefault()
-      const completion = completeCommand(draft)
+      const completion = completeCommand(draft, KNOWN_COMMANDS, { cwd })
       if (completion.line !== draft) {
         caretOffset.current = completion.line.length
         setDraft(completion.line)

@@ -181,6 +181,25 @@ function lookup(path: string, cwd: string): LookupResult {
   return { ok: true, node: found.node }
 }
 
+export type DirectoryEntry = {
+  name: string
+  kind: 'file' | 'directory'
+}
+
+export function readDirectory(
+  path: string,
+  cwd = '',
+): readonly DirectoryEntry[] | null {
+  const found = walk(path === '' ? '.' : path, cwd)
+  if (!found.ok || found.node.kind !== 'directory') {
+    return null
+  }
+  return found.node.children.map((entry) => ({
+    name: entry.name,
+    kind: entry.kind,
+  }))
+}
+
 export function formatCwd(cwd: string): string {
   return cwd === '' ? '~' : `~/${cwd}`
 }
