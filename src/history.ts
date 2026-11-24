@@ -12,6 +12,15 @@ export function createHistory(): CommandHistory {
   return { entries: [], cursor: 0 }
 }
 
+// Bash prints history as a right-aligned index, two spaces, then the line.
+// The column stays five characters wide until a larger index needs more room.
+export function formatHistory(entries: readonly string[]): string[] {
+  const width = Math.max(5, String(entries.length).length)
+  return entries.map(
+    (entry, index) => `${String(index + 1).padStart(width)}  ${entry}`,
+  )
+}
+
 export function recordCommand(
   history: CommandHistory,
   line: string,

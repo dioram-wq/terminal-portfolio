@@ -126,7 +126,8 @@ export function Terminal() {
 
     event.preventDefault()
     const nextCwd = cwdAfter(draft, cwd)
-    setLog((current) => applyLine(current, draft, cwd))
+    const previous = history.entries
+    setLog((current) => applyLine(current, draft, cwd, previous))
     setCwd(nextCwd)
     setHistory((current) => recordCommand(current, draft))
     setDraft('')

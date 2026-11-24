@@ -8,6 +8,7 @@ import {
   pwdLines,
   resumeText,
 } from './filesystem.ts'
+import { formatHistory } from './history.ts'
 
 export type ScrollbackEntry =
   | { kind: 'echo'; line: string; cwd: string }
@@ -32,7 +33,11 @@ function helpLines(): string[] {
   )
 }
 
-function effectFor(line: string, cwd: string): { effect: LineEffect; cwd: string } {
+function effectFor(
+  line: string,
+  cwd: string,
+  history: readonly string[],
+): { effect: LineEffect; cwd: string } {
   const echo: ScrollbackEntry = { kind: 'echo', line, cwd }
   const parsed = parseCommand(line)
 
@@ -109,6 +114,15 @@ function effectFor(line: string, cwd: string): { effect: LineEffect; cwd: string
           cwd,
         }
       }
+      if (parsed.name === 'history') {
+        return {
+          effect: {
+            kind: 'append',
+            entries: [echo, ...output(formatHistory(history))],
+          },
+          cwd,
+        }
+      }
       return {
         effect: {
           kind: 'append',
@@ -122,8 +136,12 @@ function effectFor(line: string, cwd: string): { effect: LineEffect; cwd: string
   }
 }
 
-export function runLine(line: string, cwd = ''): ScrollbackEntry[] {
-  const resolved = effectFor(line, cwd)
+export function runLine(
+  line: string,
+  cwd = '',
+  history: readonly string[] = [],
+): ScrollbackEntry[] {
+  const resolved = effectFor(line, cwd, history)
   return resolved.effect.kind === 'clear' ? [] : resolved.effect.entries
 }
 
@@ -131,11 +149,14 @@ export function applyLine(
   log: readonly ScrollbackEntry[],
   line: string,
   cwd = '',
+  history: readonly string[] = [],
 ): ScrollbackEntry[] {
-  const resolved = effectFor(line, cwd)
-  return resolved.effect.kind === 'clear' ? [] : [...log, ...resolved.effect.entries]
+  const resolved = effectFor(line, cwd, history)
+  return resolved.effect.kind === 'clear'
+    ? []
+    : [...log, ...resolved.effect.entries]
 }
 
 export function cwdAfter(line: string, cwd = ''): string {
-  return effectFor(line, cwd).cwd
+  return effectFor(line, cwd, []).cwd
 }
