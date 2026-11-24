@@ -68,6 +68,18 @@ describe('completeCommand', () => {
     })
   })
 
+  it('completes history from the shared command list', () => {
+    expect(completeCommand('hist')).toEqual({
+      line: 'history ',
+      matches: ['history'],
+    })
+
+    expect(completeCommand('h')).toEqual({
+      line: 'h',
+      matches: ['help', 'history'],
+    })
+  })
+
   it('leaves the input unchanged when nothing matches', () => {
     expect(completeCommand('vim')).toEqual({ line: 'vim', matches: [] })
     expect(completeCommand('zzz', ['help', 'projects'])).toEqual({

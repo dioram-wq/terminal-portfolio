@@ -466,6 +466,43 @@ describe('Terminal', () => {
     expect(screen.getByRole('log').textContent).toBe('')
   })
 
+  it('prints numbered history from earlier commands and keeps it after clear', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    runCommand(input, 'history')
+    expect(screen.getByRole('log').textContent).toBe('visitor@portfolio:~$history')
+
+    runCommand(input, 'help')
+    runCommand(input, 'about')
+    runCommand(input, '')
+    runCommand(input, 'history')
+
+    const listed = screen.getByRole('log').textContent ?? ''
+    expect(listed).toContain('    1  history')
+    expect(listed).toContain('    2  help')
+    expect(listed).toContain('    3  about')
+    expect(listed).not.toContain('    4 ')
+    expect(listed).toContain('Print previous commands')
+
+    runCommand(input, 'clear')
+    expect(screen.getByRole('log').textContent).toBe('')
+
+    runCommand(input, 'history')
+    const afterClear = screen.getByRole('log').textContent ?? ''
+    expect(afterClear).toContain('    1  history')
+    expect(afterClear).toContain('    2  help')
+    expect(afterClear).toContain('    3  about')
+    expect(afterClear).toContain('    4  history')
+    expect(afterClear).toContain('    5  clear')
+    expect(afterClear).not.toContain('Print previous commands')
+    expect(afterClear).not.toContain(about.name)
+
+    fireEvent.change(input, { target: { value: 'hist' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'history ')
+  })
+
   it('leaves the draft alone while an IME composition is active', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })

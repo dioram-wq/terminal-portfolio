@@ -3,8 +3,12 @@ import { COMMANDS, KNOWN_COMMANDS } from './commandParser.ts'
 import { about, projects, resume } from './content.ts'
 import { applyLine, cwdAfter, runLine } from './runLine.ts'
 
-function outputLines(line: string, cwd = ''): string[] {
-  return runLine(line, cwd)
+function outputLines(
+  line: string,
+  cwd = '',
+  history: readonly string[] = [],
+): string[] {
+  return runLine(line, cwd, history)
     .filter((entry) => entry.kind === 'output')
     .map((entry) => entry.line)
 }
@@ -416,5 +420,83 @@ describe('working directory', () => {
     expect(outputLines('CD')).toEqual(['command not found: CD'])
     expect(outputLines('PWD')).toEqual(['command not found: PWD'])
     expect(cwdAfter('CD')).toBe('')
+  })
+})
+
+describe('history', () => {
+  const session = [
+    'help',
+    'about',
+    'ls',
+    'cat about.txt',
+    'cd projects',
+    'pwd',
+    'clear',
+    'projects',
+    'resume',
+    '  history',
+  ]
+
+  it('prints previous commands numbered like a shell', () => {
+    const entries = runLine('history', 'projects', session)
+
+    expect(entries[0]).toEqual({
+      kind: 'echo',
+      line: 'history',
+      cwd: 'projects',
+    })
+    expect(outputLines('history', 'projects', session)).toEqual([
+      '    1  help',
+      '    2  about',
+      '    3  ls',
+      '    4  cat about.txt',
+      '    5  cd projects',
+      '    6  pwd',
+      '    7  clear',
+      '    8  projects',
+      '    9  resume',
+      '   10    history',
+    ])
+    expect(outputLines('  history   extra  ', '', ['pwd'])).toEqual([
+      '    1  pwd',
+    ])
+    expect(runLine('  history   extra  ', '', ['pwd'])[0]).toEqual({
+      kind: 'echo',
+      line: '  history   extra  ',
+      cwd: '',
+    })
+    expect(cwdAfter('history', 'projects')).toBe('projects')
+    expect(outputLines('History')).toEqual(['command not found: History'])
+  })
+
+  it('prints no numbered lines when the session history is empty', () => {
+    expect(runLine('history')).toEqual([
+      { kind: 'echo', line: 'history', cwd: '' },
+    ])
+    expect(outputLines('history', '', [])).toEqual([])
+  })
+
+  it('lists history in help and still prints the session after clear', () => {
+    const command = COMMANDS.find((entry) => entry.name === 'history')
+    const width = Math.max(...COMMANDS.map((entry) => entry.name.length))
+
+    expect(command?.description).toBe('Print previous commands')
+    expect(outputLines('help')).toContain(
+      `${'history'.padEnd(width)}  ${command?.description}`,
+    )
+
+    const filled = applyLine([], 'help', '', [])
+    expect(filled.some((entry) => entry.kind === 'output')).toBe(true)
+
+    const cleared = applyLine(filled, 'clear', 'projects', ['help'])
+    expect(cleared).toEqual([])
+
+    const shown = applyLine(cleared, 'history', 'projects', ['help', 'clear'])
+    expect(shown).toEqual([
+      { kind: 'echo', line: 'history', cwd: 'projects' },
+      { kind: 'output', line: '    1  help' },
+      { kind: 'output', line: '    2  clear' },
+    ])
+    expect(cwdAfter('clear', 'projects')).toBe('projects')
   })
 })
