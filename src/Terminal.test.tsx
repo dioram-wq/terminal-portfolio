@@ -515,4 +515,134 @@ describe('Terminal', () => {
     expect(input).toHaveProperty('value', 'draft')
     expect(screen.getAllByText('help')).toHaveLength(1)
   })
+
+  it('clears the scrollback with Ctrl+L and keeps the draft, directory, and history', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    runCommand(input, 'cd projects')
+    runCommand(input, 'about')
+    expect(screen.getByText(about.name)).toBeTruthy()
+    expect(promptPaths().at(-1)).toBe(':~/projects')
+
+    fireEvent.change(input, { target: { value: 'ls ' } })
+    expect(fireEvent.keyDown(input, { key: 'l', ctrlKey: true })).toBe(false)
+
+    expect(screen.getByRole('log').textContent).toBe('')
+    expect(screen.getByText('Welcome to the terminal portfolio.')).toBeTruthy()
+    expect(input).toHaveProperty('value', 'ls ')
+    expect(promptPaths()).toEqual([':~/projects'])
+    expect(document.activeElement).toBe(input)
+
+    runCommand(input, 'history')
+    const listed = screen.getByRole('log').textContent ?? ''
+    expect(listed).toContain('    1  cd projects')
+    expect(listed).toContain('    2  about')
+    expect(listed).not.toContain('    3 ')
+    expect(listed).not.toContain('clear')
+    expect(promptPaths().at(-1)).toBe(':~/projects')
+  })
+
+  it('cancels the current line with Ctrl+C without running or storing it', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    runCommand(input, 'cd projects')
+    fireEvent.change(input, { target: { value: 'about extra' } })
+    expect(fireEvent.keyDown(input, { key: 'c', ctrlKey: true })).toBe(false)
+
+    expect(screen.getByText('about extra^C')).toBeTruthy()
+    expect(screen.queryByText(about.name)).toBeNull()
+    expect(screen.queryByText(about.introduction)).toBeNull()
+    expect(input).toHaveProperty('value', '')
+    expect(promptPaths()).toEqual([':~', ':~/projects', ':~/projects'])
+    expect(document.activeElement).toBe(input)
+
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'cd projects')
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'cd projects')
+
+    runCommand(input, 'history')
+    const listed = screen.getByRole('log').textContent ?? ''
+    expect(listed).toContain('    1  cd projects')
+    expect(listed).not.toContain('    2 ')
+    expect(listed).toContain('about extra^C')
+    expect(listed).not.toContain('  about extra')
+    expect(listed).not.toContain(about.name)
+
+    runCommand(input, 'pwd')
+    expect(screen.getByText('~/projects')).toBeTruthy()
+
+    runCommand(input, 'history')
+    const again = screen.getByRole('log').textContent ?? ''
+    expect(again).toContain('    1  cd projects')
+    expect(again).toContain('    2  history')
+    expect(again).toContain('    3  pwd')
+    expect(again).not.toContain('    4 ')
+    expect(again).not.toContain('  about extra')
+  })
+
+  it('prints ^C for an empty line and abandons a recalled command', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    expect(fireEvent.keyDown(input, { key: 'c', ctrlKey: true })).toBe(false)
+    expect(screen.getByText('^C')).toBeTruthy()
+    expect(input).toHaveProperty('value', '')
+
+    runCommand(input, 'help')
+    runCommand(input, 'about')
+    const introductions = screen.getAllByText(about.introduction)
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'about')
+
+    fireEvent.keyDown(input, { key: 'c', ctrlKey: true })
+    expect(screen.getByText('about^C')).toBeTruthy()
+    expect(screen.getAllByText(about.introduction)).toHaveLength(
+      introductions.length,
+    )
+    expect(input).toHaveProperty('value', '')
+
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'about')
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(input).toHaveProperty('value', 'help')
+  })
+
+  it('leaves copy and other modified shortcuts alone', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    runCommand(input, 'about')
+    fireEvent.change(input, { target: { value: 'keep me' } })
+
+    expect(fireEvent.keyDown(input, { key: 'c', metaKey: true })).toBe(true)
+    expect(fireEvent.keyDown(input, { key: 'c', ctrlKey: true, shiftKey: true })).toBe(
+      true,
+    )
+    expect(fireEvent.keyDown(input, { key: 'l', ctrlKey: true, altKey: true })).toBe(
+      true,
+    )
+    expect(fireEvent.keyDown(input, { key: 'l' })).toBe(true)
+
+    expect(input).toHaveProperty('value', 'keep me')
+    expect(screen.getByText(about.name)).toBeTruthy()
+    expect(screen.queryByText('keep me^C')).toBeNull()
+    expect(screen.queryByText('^C')).toBeNull()
+  })
+
+  it('leaves the draft alone when Ctrl+C or Ctrl+L arrives during composition', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    runCommand(input, 'about')
+    fireEvent.change(input, { target: { value: 'draft' } })
+    fireEvent.keyDown(input, { key: 'l', ctrlKey: true, isComposing: true })
+    fireEvent.keyDown(input, { key: 'c', ctrlKey: true, isComposing: true })
+
+    expect(input).toHaveProperty('value', 'draft')
+    expect(screen.getByText(about.name)).toBeTruthy()
+    expect(screen.queryByText('draft^C')).toBeNull()
+  })
 })

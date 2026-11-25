@@ -4,6 +4,7 @@ import {
   recallNext,
   recallPrevious,
   recordCommand,
+  returnToDraft,
 } from './history.ts'
 
 describe('command history', () => {
@@ -97,6 +98,27 @@ describe('command history', () => {
 
     expect(history).toEqual({ entries: ['help'], cursor: 1 })
     expect(recallNext(history)).toEqual({ history, line: '' })
+  })
+
+  it('returns to the empty draft after walking backward', () => {
+    let history = recordCommand(createHistory(), 'help')
+    history = recordCommand(history, 'about')
+    history = recallPrevious(recallPrevious(history).history).history
+
+    expect(history.cursor).toBe(0)
+
+    const draft = returnToDraft(history)
+
+    expect(draft).toEqual({ entries: ['help', 'about'], cursor: 2 })
+    expect(returnToDraft(draft)).toBe(draft)
+  })
+
+  it('keeps a history that is already sitting on the draft', () => {
+    const empty = createHistory()
+    const recorded = recordCommand(empty, 'help')
+
+    expect(returnToDraft(empty)).toBe(empty)
+    expect(returnToDraft(recorded)).toBe(recorded)
   })
 
   it('does not add a duplicate when the newest command is submitted again', () => {
