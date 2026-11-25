@@ -66,3 +66,11 @@ export function recallNext(history: CommandHistory): HistoryRecall {
     line: history.entries[cursor] ?? '',
   }
 }
+
+// Leave a recalled entry and sit on the empty draft again.
+export function returnToDraft(history: CommandHistory): CommandHistory {
+  if (history.cursor === history.entries.length) {
+    return history
+  }
+  return { entries: history.entries, cursor: history.entries.length }
+}

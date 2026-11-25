@@ -15,6 +15,7 @@ import {
   recordCommand,
   type CommandHistory,
 } from './history.ts'
+import { applyLineEdit, lineEditFor } from './lineEdit.ts'
 import { applyLine, cwdAfter, type ScrollbackEntry } from './runLine.ts'
 
 const URL_PATTERN = /https?:\/\/[^\s]+/g
@@ -53,7 +54,7 @@ function outputLine(line: string): ReactNode {
 }
 
 export function Terminal() {
-  const [log, setLog] = useState<ScrollbackEntry[]>([])
+  const [log, setLog] = useState<readonly ScrollbackEntry[]>([])
   const [draft, setDraft] = useState('')
   const [cwd, setCwd] = useState('')
   const [history, setHistory] = useState<CommandHistory>(createHistory)
@@ -90,6 +91,22 @@ export function Terminal() {
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.nativeEvent.isComposing) {
+      return
+    }
+
+    const edit = lineEditFor({
+      key: event.key,
+      ctrlKey: event.ctrlKey,
+      altKey: event.altKey,
+      metaKey: event.metaKey,
+      shiftKey: event.shiftKey,
+    })
+    if (edit) {
+      event.preventDefault()
+      const next = applyLineEdit({ log, draft, cwd, history }, edit)
+      setLog(next.log)
+      setDraft(next.draft)
+      setHistory(next.history)
       return
     }
 
