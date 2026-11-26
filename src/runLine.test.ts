@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { COMMANDS, KNOWN_COMMANDS } from './commandParser.ts'
 import { about, projects, resume } from './content.ts'
-import { applyLine, cwdAfter, runLine } from './runLine.ts'
+import { applyLine, cwdAfter, runLine, shellUser } from './runLine.ts'
 
 function outputLines(
   line: string,
@@ -498,5 +498,81 @@ describe('history', () => {
       { kind: 'output', line: '    2  clear' },
     ])
     expect(cwdAfter('clear', 'projects')).toBe('projects')
+  })
+})
+
+describe('whoami and echo', () => {
+  it('prints the prompt user and ignores extra arguments', () => {
+    expect(shellUser).toBe('visitor')
+    expect(runLine('whoami')[0]).toEqual({
+      kind: 'echo',
+      line: 'whoami',
+      cwd: '',
+    })
+    expect(outputLines('whoami')).toEqual(['visitor'])
+    expect(outputLines('  whoami   extra  ')).toEqual(['visitor'])
+    expect(runLine('  whoami   extra  ')[0]).toEqual({
+      kind: 'echo',
+      line: '  whoami   extra  ',
+      cwd: '',
+    })
+    expect(outputLines('whoami', 'projects')).toEqual(['visitor'])
+    expect(cwdAfter('whoami', 'projects')).toBe('projects')
+    expect(outputLines('Whoami')).toEqual(['command not found: Whoami'])
+    expect(outputLines('whoami').join('\n')).not.toContain('coming soon')
+  })
+
+  it('prints arguments joined by single spaces', () => {
+    expect(runLine('echo hello world')[0]).toEqual({
+      kind: 'echo',
+      line: 'echo hello world',
+      cwd: '',
+    })
+    expect(outputLines('echo hello')).toEqual(['hello'])
+    expect(outputLines('echo hello world')).toEqual(['hello world'])
+    expect(outputLines('  echo   hello    world  ')).toEqual(['hello world'])
+    expect(runLine('  echo   hello    world  ')[0]).toEqual({
+      kind: 'echo',
+      line: '  echo   hello    world  ',
+      cwd: '',
+    })
+    expect(outputLines('echo help')).toEqual(['help'])
+    expect(outputLines('echo whoami')).toEqual(['whoami'])
+    expect(cwdAfter('echo hello', 'projects')).toBe('projects')
+    expect(outputLines('ECHO hi')).toEqual(['command not found: ECHO'])
+    expect(outputLines('echo hello world').join('\n')).not.toContain(
+      'coming soon',
+    )
+  })
+
+  it('prints an empty line when echo has no arguments', () => {
+    expect(runLine('echo')).toEqual([
+      { kind: 'echo', line: 'echo', cwd: '' },
+      { kind: 'output', line: '' },
+    ])
+    expect(outputLines('echo')).toEqual([''])
+    expect(outputLines('   echo   ')).toEqual([''])
+    expect(runLine('   echo   ')[0]).toEqual({
+      kind: 'echo',
+      line: '   echo   ',
+      cwd: '',
+    })
+  })
+
+  it('lists whoami and echo in help', () => {
+    const width = Math.max(...COMMANDS.map((command) => command.name.length))
+    const lines = outputLines('help')
+
+    expect(COMMANDS.find((command) => command.name === 'whoami')?.description).toBe(
+      'Print the current user',
+    )
+    expect(COMMANDS.find((command) => command.name === 'echo')?.description).toBe(
+      'Print the arguments',
+    )
+
+    for (const name of ['whoami', 'echo'] as const) {
+      const command = COMMANDS.find((entry) => entry.name === name)
+      expect(lines).toContain(`${name.padEnd(width)}  ${command?.description}`)
+    }
   })
 })

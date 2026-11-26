@@ -503,6 +503,39 @@ describe('Terminal', () => {
     expect(input).toHaveProperty('value', 'history ')
   })
 
+  it('prints the prompt user with whoami and arguments with echo', () => {
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+    const promptUser = screen.getByText('visitor@portfolio').textContent ?? ''
+
+    runCommand(input, 'whoami')
+    expect(screen.getByText('visitor').textContent).toBe(
+      promptUser.slice(0, promptUser.indexOf('@')),
+    )
+
+    runCommand(input, 'echo hello world')
+    expect(screen.getByText('hello world')).toBeTruthy()
+
+    runCommand(input, 'echo')
+    const outputs = [
+      ...document.querySelectorAll('.terminal__line--output'),
+    ].map((element) => element.textContent)
+    expect(outputs).toEqual(['visitor', 'hello world', ''])
+
+    runCommand(input, 'help')
+    const log = screen.getByRole('log').textContent ?? ''
+    expect(log).toContain('Print the current user')
+    expect(log).toContain('Print the arguments')
+
+    fireEvent.change(input, { target: { value: 'who' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'whoami ')
+
+    fireEvent.change(input, { target: { value: 'ec' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'echo ')
+  })
+
   it('leaves the draft alone while an IME composition is active', () => {
     render(<Terminal />)
     const input = screen.getByRole('textbox', { name: 'Command' })

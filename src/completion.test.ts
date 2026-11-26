@@ -80,6 +80,23 @@ describe('completeCommand', () => {
     })
   })
 
+  it('completes whoami and echo from the shared command list', () => {
+    expect(completeCommand('who')).toEqual({
+      line: 'whoami ',
+      matches: ['whoami'],
+    })
+
+    expect(completeCommand('ec')).toEqual({
+      line: 'echo ',
+      matches: ['echo'],
+    })
+
+    expect(completeCommand('echo hello')).toEqual({
+      line: 'echo hello',
+      matches: [],
+    })
+  })
+
   it('leaves the input unchanged when nothing matches', () => {
     expect(completeCommand('vim')).toEqual({ line: 'vim', matches: [] })
     expect(completeCommand('zzz', ['help', 'projects'])).toEqual({
