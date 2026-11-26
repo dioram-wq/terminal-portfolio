@@ -9,6 +9,8 @@ export const COMMANDS = [
   { name: 'cd', description: 'Change the current directory' },
   { name: 'pwd', description: 'Print the current directory' },
   { name: 'history', description: 'Print previous commands' },
+  { name: 'whoami', description: 'Print the current user' },
+  { name: 'echo', description: 'Print the arguments' },
 ] as const
 
 export const KNOWN_COMMANDS = COMMANDS.map((command) => command.name)

@@ -16,7 +16,7 @@ import {
   type CommandHistory,
 } from './history.ts'
 import { applyLineEdit, lineEditFor } from './lineEdit.ts'
-import { applyLine, cwdAfter, type ScrollbackEntry } from './runLine.ts'
+import { applyLine, cwdAfter, shellUser, type ScrollbackEntry } from './runLine.ts'
 
 const URL_PATTERN = /https?:\/\/[^\s]+/g
 
@@ -216,7 +216,7 @@ function Prompt({
       }
     >
       <span className="terminal__prefix">
-        <span className="terminal__user">visitor@portfolio</span>
+        <span className="terminal__user">{shellUser}@portfolio</span>
         <span className="terminal__path">:{formatCwd(cwd)}</span>
         <span className="terminal__sigil">$</span>
       </span>

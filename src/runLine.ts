@@ -10,6 +10,9 @@ import {
 } from './filesystem.ts'
 import { formatHistory } from './history.ts'
 
+// The prompt shows this name, as in visitor@portfolio.
+export const shellUser = 'visitor'
+
 export type ScrollbackEntry =
   | { kind: 'echo'; line: string; cwd: string }
   | { kind: 'output'; line: string }
@@ -119,6 +122,24 @@ function effectFor(
           effect: {
             kind: 'append',
             entries: [echo, ...output(formatHistory(history))],
+          },
+          cwd,
+        }
+      }
+      if (parsed.name === 'whoami') {
+        return {
+          effect: {
+            kind: 'append',
+            entries: [echo, ...output([shellUser])],
+          },
+          cwd,
+        }
+      }
+      if (parsed.name === 'echo') {
+        return {
+          effect: {
+            kind: 'append',
+            entries: [echo, ...output([parsed.args.join(' ')])],
           },
           cwd,
         }
