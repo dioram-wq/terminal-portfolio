@@ -1,5 +1,6 @@
 import { KNOWN_COMMANDS } from './commandParser.ts'
 import { readDirectory, type DirectoryEntry } from './filesystem.ts'
+import { THEMES } from './theme.ts'
 
 export type CommandCompletion = {
   line: string
@@ -71,6 +72,36 @@ function pathArgument(line: string): PathArgument | null {
   }
 }
 
+function themeArgument(line: string): { head: string; token: string } | null {
+  const match = /^theme(\s+)(\S*)$/.exec(line)
+  if (!match) {
+    return null
+  }
+
+  return {
+    head: `theme${match[1] ?? ''}`,
+    token: match[2] ?? '',
+  }
+}
+
+function completeTheme(
+  line: string,
+  argument: { head: string; token: string },
+): CommandCompletion {
+  const matches = THEMES.filter((name) => name.startsWith(argument.token))
+  if (matches.length === 0) {
+    return { line, matches: [] }
+  }
+  if (matches.length === 1) {
+    return { line: `${argument.head}${matches[0]} `, matches }
+  }
+
+  return {
+    line: `${argument.head}${longestCommonPrefix(matches)}`,
+    matches,
+  }
+}
+
 function completePath(
   line: string,
   path: PathArgument,
@@ -113,6 +144,11 @@ export function completeCommand(
   const path = pathArgument(line)
   if (path) {
     return completePath(line, path, context)
+  }
+
+  const theme = themeArgument(line)
+  if (theme) {
+    return completeTheme(line, theme)
   }
 
   if (/\s/.test(line)) {

@@ -11,6 +11,7 @@ export const COMMANDS = [
   { name: 'history', description: 'Print previous commands' },
   { name: 'whoami', description: 'Print the current user' },
   { name: 'echo', description: 'Print the arguments' },
+  { name: 'theme', description: 'List or switch color themes' },
 ] as const
 
 export const KNOWN_COMMANDS = COMMANDS.map((command) => command.name)

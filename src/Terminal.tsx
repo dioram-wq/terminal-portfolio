@@ -16,7 +16,20 @@ import {
   type CommandHistory,
 } from './history.ts'
 import { applyLineEdit, lineEditFor } from './lineEdit.ts'
-import { applyLine, cwdAfter, shellUser, type ScrollbackEntry } from './runLine.ts'
+import {
+  applyLine,
+  cwdAfter,
+  shellUser,
+  themeAfter,
+  themeToStore,
+  type ScrollbackEntry,
+} from './runLine.ts'
+import {
+  applyTheme,
+  readStoredTheme,
+  storeTheme,
+  type ThemeName,
+} from './theme.ts'
 
 const URL_PATTERN = /https?:\/\/[^\s]+/g
 
@@ -57,6 +70,7 @@ export function Terminal() {
   const [log, setLog] = useState<readonly ScrollbackEntry[]>([])
   const [draft, setDraft] = useState('')
   const [cwd, setCwd] = useState('')
+  const [theme, setTheme] = useState<ThemeName>(() => readStoredTheme())
   const [history, setHistory] = useState<CommandHistory>(createHistory)
   const inputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -71,6 +85,10 @@ export function Terminal() {
     caretOffset.current = null
     input.setSelectionRange(offset, offset)
   })
+
+  useLayoutEffect(() => {
+    applyTheme(theme)
+  }, [theme])
 
   useLayoutEffect(() => {
     const scroller = scrollRef.current
@@ -143,9 +161,15 @@ export function Terminal() {
 
     event.preventDefault()
     const nextCwd = cwdAfter(draft, cwd)
+    const nextTheme = themeAfter(draft, theme)
+    const remembered = themeToStore(draft, theme)
     const previous = history.entries
-    setLog((current) => applyLine(current, draft, cwd, previous))
+    setLog((current) => applyLine(current, draft, cwd, previous, theme))
     setCwd(nextCwd)
+    setTheme(nextTheme)
+    if (remembered !== null) {
+      storeTheme(remembered)
+    }
     setHistory((current) => recordCommand(current, draft))
     setDraft('')
   }

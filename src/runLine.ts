@@ -9,6 +9,7 @@ import {
   resumeText,
 } from './filesystem.ts'
 import { formatHistory } from './history.ts'
+import { DEFAULT_THEME, themeCommand, type ThemeName } from './theme.ts'
 
 // The prompt shows this name, as in visitor@portfolio.
 export const shellUser = 'visitor'
@@ -40,13 +41,14 @@ function effectFor(
   line: string,
   cwd: string,
   history: readonly string[],
-): { effect: LineEffect; cwd: string } {
+  theme: ThemeName,
+): { effect: LineEffect; cwd: string; theme: ThemeName } {
   const echo: ScrollbackEntry = { kind: 'echo', line, cwd }
   const parsed = parseCommand(line)
 
   switch (parsed.kind) {
     case 'empty':
-      return { effect: { kind: 'append', entries: [echo] }, cwd }
+      return { effect: { kind: 'append', entries: [echo] }, cwd, theme }
     case 'unknown':
       return {
         effect: {
@@ -57,33 +59,38 @@ function effectFor(
           ],
         },
         cwd,
+        theme,
       }
     case 'command':
       if (parsed.name === 'clear') {
-        return { effect: { kind: 'clear' }, cwd }
+        return { effect: { kind: 'clear' }, cwd, theme }
       }
       if (parsed.name === 'help') {
         return {
           effect: { kind: 'append', entries: [echo, ...output(helpLines())] },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'about') {
         return {
           effect: { kind: 'append', entries: [echo, ...output(aboutText())] },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'projects') {
         return {
           effect: { kind: 'append', entries: [echo, ...output(projectsText())] },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'resume') {
         return {
           effect: { kind: 'append', entries: [echo, ...output(resumeText())] },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'ls') {
@@ -93,6 +100,7 @@ function effectFor(
             entries: [echo, ...output(lsLines(parsed.args, cwd))],
           },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'cat') {
@@ -102,6 +110,7 @@ function effectFor(
             entries: [echo, ...output(catLines(parsed.args, cwd))],
           },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'cd') {
@@ -109,12 +118,14 @@ function effectFor(
         return {
           effect: { kind: 'append', entries: [echo, ...output(next.lines)] },
           cwd: next.cwd,
+          theme,
         }
       }
       if (parsed.name === 'pwd') {
         return {
           effect: { kind: 'append', entries: [echo, ...output(pwdLines(cwd))] },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'history') {
@@ -124,6 +135,7 @@ function effectFor(
             entries: [echo, ...output(formatHistory(history))],
           },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'whoami') {
@@ -133,6 +145,7 @@ function effectFor(
             entries: [echo, ...output([shellUser])],
           },
           cwd,
+          theme,
         }
       }
       if (parsed.name === 'echo') {
@@ -142,6 +155,15 @@ function effectFor(
             entries: [echo, ...output([parsed.args.join(' ')])],
           },
           cwd,
+          theme,
+        }
+      }
+      if (parsed.name === 'theme') {
+        const next = themeCommand(parsed.args, theme)
+        return {
+          effect: { kind: 'append', entries: [echo, ...output(next.lines)] },
+          cwd,
+          theme: next.theme,
         }
       }
       return {
@@ -153,6 +175,7 @@ function effectFor(
           ],
         },
         cwd,
+        theme,
       }
   }
 }
@@ -161,8 +184,9 @@ export function runLine(
   line: string,
   cwd = '',
   history: readonly string[] = [],
+  theme: ThemeName = DEFAULT_THEME,
 ): ScrollbackEntry[] {
-  const resolved = effectFor(line, cwd, history)
+  const resolved = effectFor(line, cwd, history, theme)
   return resolved.effect.kind === 'clear' ? [] : resolved.effect.entries
 }
 
@@ -171,13 +195,34 @@ export function applyLine(
   line: string,
   cwd = '',
   history: readonly string[] = [],
+  theme: ThemeName = DEFAULT_THEME,
 ): ScrollbackEntry[] {
-  const resolved = effectFor(line, cwd, history)
+  const resolved = effectFor(line, cwd, history, theme)
   return resolved.effect.kind === 'clear'
     ? []
     : [...log, ...resolved.effect.entries]
 }
 
 export function cwdAfter(line: string, cwd = ''): string {
-  return effectFor(line, cwd, []).cwd
+  return effectFor(line, cwd, [], DEFAULT_THEME).cwd
+}
+
+export function themeAfter(
+  line: string,
+  theme: ThemeName = DEFAULT_THEME,
+): ThemeName {
+  return effectFor(line, '', [], theme).theme
+}
+
+export function themeToStore(
+  line: string,
+  theme: ThemeName = DEFAULT_THEME,
+): ThemeName | null {
+  const parsed = parseCommand(line)
+  if (parsed.kind !== 'command' || parsed.name !== 'theme') {
+    return null
+  }
+
+  const next = themeCommand(parsed.args, theme)
+  return next.persist ? next.theme : null
 }
