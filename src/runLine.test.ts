@@ -1,14 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { COMMANDS, KNOWN_COMMANDS } from './commandParser.ts'
 import { about, projects, resume } from './content.ts'
-import { applyLine, cwdAfter, runLine, shellUser } from './runLine.ts'
+import {
+  applyLine,
+  cwdAfter,
+  runLine,
+  shellUser,
+  themeAfter,
+  themeToStore,
+} from './runLine.ts'
+import { DEFAULT_THEME, THEME_STORAGE_KEY, type ThemeName } from './theme.ts'
 
 function outputLines(
   line: string,
   cwd = '',
   history: readonly string[] = [],
+  theme: ThemeName = DEFAULT_THEME,
 ): string[] {
-  return runLine(line, cwd, history)
+  return runLine(line, cwd, history, theme)
     .filter((entry) => entry.kind === 'output')
     .map((entry) => entry.line)
 }
@@ -574,5 +583,93 @@ describe('whoami and echo', () => {
       const command = COMMANDS.find((entry) => entry.name === name)
       expect(lines).toContain(`${name.padEnd(width)}  ${command?.description}`)
     }
+  })
+})
+
+describe('theme', () => {
+  it('lists the themes and marks the current one', () => {
+    expect(runLine('theme')[0]).toEqual({ kind: 'echo', line: 'theme', cwd: '' })
+    expect(outputLines('theme')).toEqual(['green  current', 'amber', 'mono'])
+    expect(outputLines('  theme  ', 'projects', [], 'amber')).toEqual([
+      'green',
+      'amber  current',
+      'mono',
+    ])
+    expect(runLine('  theme  ', 'projects', [], 'amber')[0]).toEqual({
+      kind: 'echo',
+      line: '  theme  ',
+      cwd: 'projects',
+    })
+    expect(outputLines('theme', '', [], 'mono')).toEqual([
+      'green',
+      'amber',
+      'mono   current',
+    ])
+    expect(themeAfter('theme')).toBe('green')
+    expect(themeAfter('theme', 'mono')).toBe('mono')
+    expect(themeToStore('theme', 'amber')).toBeNull()
+    expect(cwdAfter('theme', 'projects')).toBe('projects')
+  })
+
+  it('switches to a theme and prints a short confirmation', () => {
+    expect(outputLines('theme amber')).toEqual(['theme set to amber'])
+    expect(themeAfter('theme amber')).toBe('amber')
+    expect(themeToStore('theme amber')).toBe('amber')
+    expect(outputLines('  theme   mono  ', 'projects', [], 'amber')).toEqual([
+      'theme set to mono',
+    ])
+    expect(runLine('  theme   mono  ', 'projects', [], 'amber')[0]).toEqual({
+      kind: 'echo',
+      line: '  theme   mono  ',
+      cwd: 'projects',
+    })
+    expect(themeAfter('  theme   mono  ', 'amber')).toBe('mono')
+    expect(themeToStore('  theme   mono  ', 'amber')).toBe('mono')
+    expect(outputLines('theme green', '', [], 'green')).toEqual([
+      'theme set to green',
+    ])
+    expect(themeAfter('theme green', 'green')).toBe('green')
+    expect(themeToStore('theme green', 'green')).toBe('green')
+    expect(cwdAfter('theme amber', 'projects')).toBe('projects')
+    expect(themeAfter('clear', 'amber')).toBe('amber')
+    expect(themeAfter('pwd', 'mono')).toBe('mono')
+  })
+
+  it('prints a shell error for an unknown theme and leaves it unchanged', () => {
+    localStorage.removeItem(THEME_STORAGE_KEY)
+
+    expect(outputLines('theme nope', 'projects', [], 'amber')).toEqual([
+      'theme: nope: No such theme',
+    ])
+    expect(runLine('theme nope', 'projects', [], 'amber')[0]).toEqual({
+      kind: 'echo',
+      line: 'theme nope',
+      cwd: 'projects',
+    })
+    expect(themeAfter('theme nope', 'amber')).toBe('amber')
+    expect(themeToStore('theme nope', 'amber')).toBeNull()
+    expect(outputLines('theme Green', '', [], 'mono')).toEqual([
+      'theme: Green: No such theme',
+    ])
+    expect(themeAfter('theme Green', 'mono')).toBe('mono')
+    expect(outputLines('theme amber mono', '', [], 'green')).toEqual([
+      'theme: too many arguments',
+    ])
+    expect(themeAfter('theme amber mono', 'mono')).toBe('mono')
+    expect(themeToStore('theme amber mono', 'mono')).toBeNull()
+    expect(outputLines('Theme')).toEqual(['command not found: Theme'])
+    expect(themeAfter('Theme', 'amber')).toBe('amber')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
+    expect(outputLines('theme nope').join('\n')).not.toContain('coming soon')
+  })
+
+  it('lists theme in help', () => {
+    const command = COMMANDS.find((entry) => entry.name === 'theme')
+    const width = Math.max(...COMMANDS.map((entry) => entry.name.length))
+
+    expect(command?.description).toBe('List or switch color themes')
+    expect(outputLines('help')).toContain(
+      `${'theme'.padEnd(width)}  ${command?.description}`,
+    )
   })
 })

@@ -3,9 +3,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { COMMANDS } from './commandParser.ts'
 import { about, projects, resume } from './content.ts'
 import { Terminal } from './Terminal.tsx'
+import { THEME_STORAGE_KEY } from './theme.ts'
 
 afterEach(() => {
   cleanup()
+  localStorage.removeItem(THEME_STORAGE_KEY)
+  delete document.documentElement.dataset.theme
 })
 
 function promptPaths(): string[] {
@@ -663,6 +666,59 @@ describe('Terminal', () => {
     expect(screen.getByText(about.name)).toBeTruthy()
     expect(screen.queryByText('keep me^C')).toBeNull()
     expect(screen.queryByText('^C')).toBeNull()
+  })
+
+  it('lists and switches themes, then keeps the choice after a reload', () => {
+    localStorage.removeItem(THEME_STORAGE_KEY)
+    render(<Terminal />)
+    const input = screen.getByRole('textbox', { name: 'Command' })
+
+    expect(document.documentElement.dataset.theme).toBe('green')
+
+    fireEvent.change(input, { target: { value: 'th' } })
+    expect(fireEvent.keyDown(input, { key: 'Tab' })).toBe(false)
+    expect(input).toHaveProperty('value', 'theme ')
+
+    fireEvent.change(input, { target: { value: 'theme a' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input).toHaveProperty('value', 'theme amber ')
+    expect(input).toHaveProperty('selectionStart', 'theme amber '.length)
+
+    runCommand(input, 'theme')
+    const listed = screen.getByRole('log').textContent ?? ''
+    expect(listed).toContain('green  current')
+    expect(listed).toContain('amber')
+    expect(listed).toContain('mono')
+
+    runCommand(input, 'theme amber')
+    expect(screen.getByText('theme set to amber')).toBeTruthy()
+    expect(document.documentElement.dataset.theme).toBe('amber')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('amber')
+
+    runCommand(input, 'theme nope')
+    expect(screen.getByText('theme: nope: No such theme')).toBeTruthy()
+    expect(document.documentElement.dataset.theme).toBe('amber')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('amber')
+
+    runCommand(input, 'clear')
+    expect(screen.getByRole('log').textContent).toBe('')
+    expect(document.documentElement.dataset.theme).toBe('amber')
+    expect(promptPaths()).toEqual([':~'])
+
+    runCommand(input, 'help')
+    expect(screen.getByRole('log').textContent).toContain(
+      'List or switch color themes',
+    )
+
+    cleanup()
+    render(<Terminal />)
+    expect(document.documentElement.dataset.theme).toBe('amber')
+
+    const again = screen.getByRole('textbox', { name: 'Command' })
+    runCommand(again, 'theme')
+    const restored = screen.getByRole('log').textContent ?? ''
+    expect(restored).toContain('amber  current')
+    expect(restored).not.toContain('green  current')
   })
 
   it('leaves the draft alone when Ctrl+C or Ctrl+L arrives during composition', () => {

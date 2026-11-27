@@ -80,6 +80,65 @@ describe('completeCommand', () => {
     })
   })
 
+  it('completes theme and its theme names', () => {
+    expect(completeCommand('th')).toEqual({
+      line: 'theme ',
+      matches: ['theme'],
+    })
+
+    expect(completeCommand('theme')).toEqual({
+      line: 'theme ',
+      matches: ['theme'],
+    })
+
+    expect(completeCommand('theme a')).toEqual({
+      line: 'theme amber ',
+      matches: ['amber'],
+    })
+
+    expect(completeCommand('theme amber')).toEqual({
+      line: 'theme amber ',
+      matches: ['amber'],
+    })
+
+    expect(completeCommand('theme g')).toEqual({
+      line: 'theme green ',
+      matches: ['green'],
+    })
+
+    expect(completeCommand('theme m')).toEqual({
+      line: 'theme mono ',
+      matches: ['mono'],
+    })
+
+    expect(completeCommand('theme ')).toEqual({
+      line: 'theme ',
+      matches: ['green', 'amber', 'mono'],
+    })
+
+    expect(completeCommand('theme nope')).toEqual({
+      line: 'theme nope',
+      matches: [],
+    })
+
+    expect(completeCommand('theme Green')).toEqual({
+      line: 'theme Green',
+      matches: [],
+    })
+
+    expect(completeCommand('theme amber extra')).toEqual({
+      line: 'theme amber extra',
+      matches: [],
+    })
+
+    expect(completeCommand('theme', KNOWN_COMMANDS, { cwd: 'projects' })).toEqual(
+      {
+        line: 'theme ',
+        matches: ['theme'],
+      },
+    )
+  })
+
   it('completes whoami and echo from the shared command list', () => {
     expect(completeCommand('who')).toEqual({
       line: 'whoami ',
